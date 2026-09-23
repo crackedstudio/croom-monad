@@ -94,8 +94,8 @@ Source: https://docs.monad.xyz/developer-essentials/opcode-pricing
 | `0x04` | identity | 15 + 3·words | same |
 | `0x05` | modexp | variable | variable |
 | `0x06` | ecAdd (BN254) | 300 | 150 |
-| `0x07` | ecMul (BN254) | **30,000** | 6,000 |
-| `0x08` | **ecPairing (BN254)** | **225,000 + 170,000 / point** | 45,000 + 34,000·k |
+| `0x07` | ecMul (BN254) | **30,000** ✅ measured | 6,000 |
+| `0x08` | **ecPairing (BN254)** | **225,000 + 170,000 / point** ✅ measured, `bench/precompiles.md` | 45,000 + 34,000·k |
 | `0x09` | blake2f | rounds × 2 | rounds × 1 |
 | `0x0a` | point_eval | 200,000 | 50,000 |
 | `0x0b`–`0x11` | BLS12-381 (EIP-2537) | per EIP, `g1_add` 375, `g2_add` 600, `map_fp_to_g1` 5,500, `map_fp2_to_g2` 23,800 | same |
