@@ -20,17 +20,36 @@ ACCOUNT="${DEPLOYER_ACCOUNT:-croom-deployer}"
 SENDER="${DEPLOYER_ADDRESS:-0xc50f1FbD1c36a2305B257376eb2264C3bB6179e8}"
 
 # Two balanced BN254 pairs: e(G1,G2)·e(-G1,G2) = 1. Exactly the shape of a drand verification.
-P=21888242871839275222246405745257275088696311157297823662689037894645226208583
+#
+# NEG_G1_Y is the field modulus minus 2, written out in full. It must NOT be computed in the
+# shell: bash arithmetic is 64-bit and silently truncates a 77-digit literal to a negative
+# number. That mistake cost a transaction and 0.204 MON — the mangled coordinate was off-curve,
+# 0x08 reverted, and a reverting precompile consumes every gas unit forwarded to it, so the
+# receipt showed gas_used == gas_limit and the experiment proved nothing.
+NEG_G1_Y=21888242871839275222246405745257275088696311157297823662689037894645226208581
 G2X1=11559732032986387107991004021392285783925812861821192530917403151452391805634
 G2X0=10857046999023057135944570762232829481370756359578518086990519993285655852781
 G2Y1=4082367875863433681332203403145435568316851327593401208105741076214120093531
 G2Y0=8495653923123431417604973247489272438418190587263600148770280649306958101930
 INPUT=$(cast abi-encode "f(uint256[12])" \
-  "[1,2,$G2X1,$G2X0,$G2Y1,$G2Y0,1,$((P-2)),$G2X1,$G2X0,$G2Y1,$G2Y0]")
+  "[1,2,$G2X1,$G2X0,$G2Y1,$G2Y0,1,$NEG_G1_Y,$G2X1,$G2X0,$G2Y1,$G2Y0]")
 
 echo "probe:     $PROBE"
 echo "sender:    $SENDER"
 echo "gas limit: $LIMIT  (padded well above what the call needs)"
+echo
+
+# Pre-flight, free: prove the input is well formed before paying to send it. An off-curve point
+# makes 0x08 revert and burn the whole limit, which looks exactly like a chain that bills the
+# limit — an indistinguishable false positive for the very thing being measured.
+PREFLIGHT=$(cast call "$PROBE" "checkPairing(bytes)(bool)" "$INPUT" --rpc-url "$RPC")
+if [ "$PREFLIGHT" != "true" ]; then
+  echo "ABORT: pairing input is not valid (checkPairing returned $PREFLIGHT)." >&2
+  echo "Sending it would burn the full gas limit and measure nothing." >&2
+  exit 1
+fi
+INNER=$(cast call "$PROBE" "probePairing(uint256,bytes)(uint256,bool,bool)" 2 "$INPUT" --rpc-url "$RPC" | head -1)
+echo "pre-flight: input valid, 0x08 inner gas by eth_call = $INNER"
 echo
 
 BEFORE=$(cast balance "$SENDER" --rpc-url "$RPC")
@@ -56,6 +75,11 @@ print(f"actually spent {spent/1e18:.18f} MON")
 print(f"gas_used  model{by_used/1e18:>22.18f} MON   (off by {abs(spent-by_used)/1e18:.18f})")
 print(f"gas_limit model{by_limit/1e18:>22.18f} MON   (off by {abs(spent-by_limit)/1e18:.18f})")
 print()
-print(f"VERDICT: charged on {'GAS_LIMIT' if abs(spent-by_limit) < abs(spent-by_used) else 'GAS_USED'}")
+if used == limit:
+    print("VERDICT: INCONCLUSIVE - gas_used equals gas_limit, so both models predict the same")
+    print("         debit. Either the call burned the limit, or the limit was set from the")
+    print("         estimate. Re-run with a larger limit against a call that cannot revert.")
+else:
+    print(f"VERDICT: charged on {'GAS_LIMIT' if abs(spent-by_limit) < abs(spent-by_used) else 'GAS_USED'}")
 print(f"\n0x08 end-to-end, real transaction: {used:,} gas")
 PY
