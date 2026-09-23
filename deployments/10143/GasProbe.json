@@ -1,0 +1,13 @@
+{
+  "address": "0x5222AC024a4D74435f943A889C111DBFe330215B",
+  "block": 65024223,
+  "chainId": 10143,
+  "commit": "1669320",
+  "compiler": "solc_version=0.8.28 evm_version=cancun optimizer_runs=1_000_000",
+  "contract": "GasProbe",
+  "deployer": "0xc50f1FbD1c36a2305B257376eb2264C3bB6179e8",
+  "effectiveGasPriceWei": 102000000000,
+  "gasUsed": 216115,
+  "paidWei": 22043730000000000,
+  "txHash": "0xcbc8069972a69b98b9df932cb180298980114e9c575d8732e009f0bdbc88eb75"
+}

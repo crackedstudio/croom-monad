@@ -1,0 +1,13 @@
+{
+  "address": "0xc33056Af574168157a7D801Ab213cf1d4416dDc6",
+  "block": 65024223,
+  "chainId": 10143,
+  "commit": "1669320",
+  "compiler": "solc_version=0.8.28 evm_version=cancun optimizer_runs=1_000_000",
+  "contract": "StoragePageProbe",
+  "deployer": "0xc50f1FbD1c36a2305B257376eb2264C3bB6179e8",
+  "effectiveGasPriceWei": 102000000000,
+  "gasUsed": 342134,
+  "paidWei": 34897668000000000,
+  "txHash": "0x5557b6e039ea46965151d9f11bd8bd3e9a18cfbb7637d8c573cf705e16724811"
+}

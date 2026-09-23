@@ -51,33 +51,11 @@ contract DeployProbe is Script {
         console.log("GasProbe deployed:        ", address(probe));
         console.log("StoragePageProbe deployed:", address(pages));
 
-        // A simulation must not leave behind a file asserting that something was deployed.
-        // deployments/ is the source the README's address table is generated from, and a
-        // plausible-looking wrong address is worse there than no address at all.
-        if (vm.isContext(VmSafe.ForgeContext.ScriptBroadcast)) {
-            _record("GasProbe", address(probe), deployer);
-            _record("StoragePageProbe", address(pages), deployer);
-        } else {
-            console.log("dry run: no deployment record written");
+        // Records are written afterwards by bin/record-deployment.py, from the broadcast
+        // artifact. A record written here would carry the *simulation's* block number and no
+        // transaction hash at all, because neither exists yet at this point in the script.
+        if (!vm.isContext(VmSafe.ForgeContext.ScriptBroadcast)) {
+            console.log("dry run: nothing broadcast, no deployment record");
         }
-    }
-
-    function _record(
-        string memory name,
-        address addr,
-        address deployer
-    ) internal {
-        string memory obj = "deployment";
-        vm.serializeString(obj, "contract", name);
-        vm.serializeAddress(obj, "address", addr);
-        vm.serializeAddress(obj, "deployer", deployer);
-        vm.serializeUint(obj, "chainId", block.chainid);
-        vm.serializeUint(obj, "block", block.number);
-        vm.serializeString(obj, "commit", vm.envOr("GIT_COMMIT", string("unknown")));
-        string memory out = vm.serializeString(obj, "compiler", "solc 0.8.28, cancun, 1e6 runs");
-
-        string memory dir = string.concat("deployments/", vm.toString(block.chainid));
-        vm.createDir(dir, true);
-        vm.writeJson(out, string.concat(dir, "/", name, ".json"));
     }
 }

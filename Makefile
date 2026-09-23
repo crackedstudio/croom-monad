@@ -6,6 +6,7 @@ DEPLOYER_ACCOUNT ?= croom-deployer
 # uses Foundry's default sender unless --sender says otherwise. Passing only --account makes
 # the script simulate as 0x1804c8...  and fail the deployer assertion before ever prompting
 # for a password. Both flags, always.
+CHAIN_ID ?= 10143
 DEPLOYER_ADDRESS ?= 0xc50f1FbD1c36a2305B257376eb2264C3bB6179e8
 RPC              ?= monad_testnet
 export GIT_COMMIT = $(shell git rev-parse --short HEAD)
@@ -40,6 +41,7 @@ measure-storage:
 deploy-probe:
 	forge script script/DeployProbe.s.sol --rpc-url $(RPC) \
 	  --account $(DEPLOYER_ACCOUNT) --sender $(DEPLOYER_ADDRESS) --broadcast
+	./bin/record-deployment.py broadcast/DeployProbe.s.sol/$(CHAIN_ID)/run-latest.json
 
 # Confirms the keystore holds the funded address. Prompts for the password and prints an
 # address; it signs nothing and sends nothing.
