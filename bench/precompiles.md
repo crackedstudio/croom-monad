@@ -70,7 +70,24 @@ Two consequences carried forward:
 - **Step 2.2** — `ecMul` at 30,000 is the one to watch when audit-reading `bls-solidity`. A hash-to-G1 that leans on scalar multiplication will not have the gas profile its Ethereum benchmarks suggest.
 - **Step 5.1** — epoch length is bounded below by amortizing a 565,000-gas verification, and above by calldata and `SSTORE` growth at 17,000 per new high-water mark.
 
+## A reverting `0x08` consumes every gas unit forwarded to it
+
+Measured twice, once locally and once — expensively — on testnet: when the input is malformed or a
+point is off-curve, the precompile does not return a cheap failure. It burns the entire gas
+forwarded. A transaction sent with a 2,000,000 limit against an off-curve input reported
+`gas_used == 2,000,000` and cost 0.204 MON.
+
+Two consequences for `Entropy` (step 2.3):
+
+- **There is no "try to verify, fall back on failure" pattern available at a sane price.** Either the contract validates the points itself before calling `0x08`, or it caps the gas it forwards to the precompile. Cap-and-check is the cheaper of the two here, because validation means field arithmetic we would otherwise not do.
+- **A bad signature is not a cheap revert.** Whatever `verifyRound` costs on the happy path, the sad path costs whatever it was given. Callers must not pass a generous limit.
+
+It also makes a specific measurement mistake indistinguishable from a specific chain behaviour: an
+off-curve input burning the limit looks exactly like a chain that bills the limit. `bin/measure-fee-model.sh`
+now pre-flights the input with a free `eth_call` and refuses to send if it is not valid.
+
 ## Still owed
 
-- [ ] Re-measure through a **real transaction** once a deployer is funded (step 1.3). `eth_call` is the same EVM but not the same accounting path, and a gate this load-bearing deserves both numbers.
-- [ ] Cold/warm `SLOAD` across a 128-slot page boundary (step 1.5, remainder). Needs deployed storage; a constructor measures an account mid-creation, which is not the case we care about.
+- [x] Cold/warm `SLOAD` across a 128-slot page boundary — done, `bench/storage-paging.md`. The 128-slot model holds exactly.
+- [x] Confirmed against the **deployed** `GasProbe` at `0x5222AC02…`: `probePairing(2, …)` reports **565,124** gas, against 565,130 by `eth_call --create`. The 6-gas difference is memory-offset overhead in the two harnesses, not a pricing difference.
+- [ ] Settle the **fee model** — `gas_limit` or `gas_used`? Two attempts have been inconclusive for the same reason each time: `gas_used` came out exactly equal to `gas_limit`, once because forge sized the limit from its estimate and once because a malformed input burned the limit. Needs one transaction where the two genuinely differ.
