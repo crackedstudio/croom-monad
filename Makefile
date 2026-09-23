@@ -5,7 +5,7 @@ DEPLOYER_ACCOUNT ?= croom-deployer
 RPC              ?= monad_testnet
 export GIT_COMMIT = $(shell git rev-parse --short HEAD)
 
-.PHONY: build test lint check measure-pairing measure-precompiles deploy-probe measure-pairing-tx
+.PHONY: build test lint check measure-pairing measure-precompiles measure-storage deploy-probe measure-pairing-tx
 
 build:  ; forge build --sizes
 test:   ; forge test
@@ -22,6 +22,14 @@ measure-precompiles:
 	@cast call --rpc-url $(RPC) --create \
 	  $$(forge inspect src/probe/PrecompileGasReport.sol:PrecompileGasReport bytecode) \
 	  | xargs cast decode-abi "f()(uint256[7])"
+
+# Storage paging. Needs the deployed StoragePageProbe address; both calls are read-only.
+measure-storage:
+	@test -n "$(PROBE)" || (echo "usage: make measure-storage PROBE=0x..."; exit 1)
+	@echo "SLOAD  slots 0, 1, 127, 128, 200 (expect cold,warm,warm,COLD,warm):"
+	@cast call $(PROBE) "measureSloads()(uint256[5])" --rpc-url $(RPC)
+	@echo "SSTORE new/new-warm/existing/new-below-highwater:"
+	@cast call $(PROBE) "measureSstores()(uint256[4])" --rpc-url $(RPC)
 
 # --- requires the funded deployer; will prompt for the keystore password -----
 deploy-probe:

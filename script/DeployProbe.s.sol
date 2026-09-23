@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import {GasProbe} from "../src/probe/GasProbe.sol";
+import {StoragePageProbe} from "../src/probe/StoragePageProbe.sol";
 import {Script, console} from "forge-std/Script.sol";
 import {VmSafe} from "forge-std/Vm.sol";
 
@@ -34,15 +35,18 @@ contract DeployProbe is Script {
 
         vm.startBroadcast();
         GasProbe probe = new GasProbe();
+        StoragePageProbe pages = new StoragePageProbe();
         vm.stopBroadcast();
 
-        console.log("GasProbe deployed:", address(probe));
+        console.log("GasProbe deployed:        ", address(probe));
+        console.log("StoragePageProbe deployed:", address(pages));
 
         // A simulation must not leave behind a file asserting that something was deployed.
         // deployments/ is the source the README's address table is generated from, and a
         // plausible-looking wrong address is worse there than no address at all.
         if (vm.isContext(VmSafe.ForgeContext.ScriptBroadcast)) {
             _record("GasProbe", address(probe), deployer);
+            _record("StoragePageProbe", address(pages), deployer);
         } else {
             console.log("dry run: no deployment record written");
         }
