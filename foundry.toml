@@ -30,6 +30,10 @@ cbor_metadata = false
 fuzz = { runs = 1024 }
 invariant = { runs = 256, depth = 128, fail_on_revert = false }
 
+# Deployment records are written by script/DeployProbe.s.sol. Scoped to one directory:
+# a script that can write anywhere is a script that can rewrite its own source.
+fs_permissions = [{access = "read-write", path = "./deployments"}]
+
 # Warnings are errors. Unused parameters and shadowed names are how a derivation
 # silently reads the wrong variable.
 deny = "warnings"
