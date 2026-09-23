@@ -55,11 +55,20 @@ Cheap, and everything else assumes it.
 
 | # | Step | Done when | Commit |
 | --- | --- | --- | --- |
-| 1.1 | Read Developer Essentials → differences, precompiles, network information, RPC differences. Write `docs/monad-facts.md`: chain id, RPC, explorer, faucet, block time, finality, size limits — each with the URL it came from and the date | Every figure has a source link | `docs(ops): monad network facts with sources` |
-| 1.2 | Verify those facts against the live network (`eth_chainId`, a block subscription for real block cadence). Correct the doc where reality and docs disagree | Doc matches the RPC's own answers | `docs(ops): reconcile monad facts against live rpc` |
+| 1.1 | Read Developer Essentials → differences, precompiles, network information, RPC differences. Write `docs/monad-facts.md`: chain id, RPC, explorer, faucet, block time, finality, size limits — each with the URL it came from and the date | Every figure has a source link | `docs(ops): monad network facts with sources` ✅ |
+| 1.2 | Verify those facts against the live network (`eth_chainId`, a block subscription for real block cadence). Correct the doc where reality and docs disagree | Doc matches the RPC's own answers | `docs(ops): reconcile monad facts against live rpc` ✅ |
 | 1.3 | Faucet, deployer funded, trivial contract deployed and verified on the explorer | An explorer link exists | `chore(ops): first testnet deployment recorded` |
-| 1.4 | `GasProbe`: call `0x08` with a valid pairing input and with an invalid one; measure on **testnet**, not in a local EVM. Record in `bench/precompiles.md` | **GATE 1a — the pairing gas cost on Monad is a number in the repo** | `bench(ops): measured 0x08 pairing gas on monad testnet` |
+| 1.4 | `GasProbe`: call `0x08` with a valid pairing input and with an invalid one; measure on **testnet**, not in a local EVM. Record in `bench/precompiles.md` | **GATE 1a — the pairing gas cost on Monad is a number in the repo** | `bench(ops): measured 0x08 pairing gas on monad testnet` ✅ |
 | 1.5 | While the probe is up: `0x01`, `0x06`, `0x07`, `keccak` baseline, cold vs warm SLOAD across a 128-slot page boundary | The gas table has a row for every primitive we will use | `bench(ops): precompile and storage-page gas baselines` |
+
+> **Status, 23 Sep.** 1.1, 1.2 and 1.4 are done — and 1.4 came in *without* a funded key. The
+> constructor-return probes in `src/probe/` report a live node's gas schedule through a plain
+> `eth_call`, so the day-one gate was answerable before a faucet claim cleared. Gate 1a passed:
+> `0x08` costs `225,000 + 170,000 × k` on Monad, exactly as documented, and the pairing computes
+> correctly. See `bench/precompiles.md`.
+>
+> Outstanding and blocked on a funded deployer: **1.3** (trivial deployment, explorer link), the
+> real-transaction re-measurement of 1.4, and the storage-page half of **1.5**.
 
 **If 1.4 fails** — pairing missing, mispriced beyond affordability, or behaving differently — stop.
 Do not start Phase 2. Raise it the same day; there are still 19 days to change course, and there
