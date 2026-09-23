@@ -39,4 +39,11 @@ Pre-build. See [docs/PHASES.md](docs/PHASES.md) for the execution breakdown and
 
 ## Deployments
 
-Addresses land here once Phase 1 deploys. Nothing is live yet.
+Monad testnet (chain `10143`). Generated from `deployments/`, never hand-typed.
+
+| Contract | Address | Purpose |
+| --- | --- | --- |
+| `GasProbe` | [`0x5222AC024a4D74435f943A889C111DBFe330215B`](https://testnet.monadscan.com/address/0x5222AC024a4D74435f943A889C111DBFe330215B) | measurement scaffolding, step 1.4 |
+| `StoragePageProbe` | [`0xc33056Af574168157a7D801Ab213cf1d4416dDc6`](https://testnet.monadscan.com/address/0xc33056Af574168157a7D801Ab213cf1d4416dDc6) | measurement scaffolding, step 1.5 |
+
+Neither is part of the protocol. Measurements: [`bench/`](bench/).

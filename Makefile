@@ -11,7 +11,7 @@ DEPLOYER_ADDRESS ?= 0xc50f1FbD1c36a2305B257376eb2264C3bB6179e8
 RPC              ?= monad_testnet
 export GIT_COMMIT = $(shell git rev-parse --short HEAD)
 
-.PHONY: build test lint check measure-pairing measure-precompiles measure-storage whoami-deployer deploy-probe measure-pairing-tx
+.PHONY: build test lint check measure-pairing measure-precompiles measure-storage measure-fee-model whoami-deployer deploy-probe measure-pairing-tx
 
 build:  ; forge build --sizes
 test:   ; forge test
@@ -42,6 +42,13 @@ deploy-probe:
 	forge script script/DeployProbe.s.sol --rpc-url $(RPC) \
 	  --account $(DEPLOYER_ACCOUNT) --sender $(DEPLOYER_ADDRESS) --broadcast
 	./bin/record-deployment.py broadcast/DeployProbe.s.sol/$(CHAIN_ID)/run-latest.json
+
+# Sends ONE transaction with a padded gas limit to settle whether Monad bills the limit or
+# the usage, and re-measures 0x08 through a real transaction at the same time.
+measure-fee-model:
+	@test -n "$(PROBE)" || (echo "usage: make measure-fee-model PROBE=0x..."; exit 1)
+	DEPLOYER_ACCOUNT=$(DEPLOYER_ACCOUNT) DEPLOYER_ADDRESS=$(DEPLOYER_ADDRESS) \
+	  ./bin/measure-fee-model.sh $(PROBE)
 
 # Confirms the keystore holds the funded address. Prompts for the password and prints an
 # address; it signs nothing and sends nothing.
