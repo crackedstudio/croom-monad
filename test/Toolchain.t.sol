@@ -40,6 +40,9 @@ contract ToolchainTest is Test {
         int256 x
     ) private pure returns (uint256) {
         // type(int256).min has no positive counterpart, so negate in two steps.
+        // casting to 'uint256' is safe because both branches are non-negative by construction:
+        // the false branch has x >= 0, and the true branch negates before casting.
+        // forge-lint: disable-next-line(unsafe-typecast)
         return x < 0 ? uint256(-(x + 1)) + 1 : uint256(x);
     }
 }
