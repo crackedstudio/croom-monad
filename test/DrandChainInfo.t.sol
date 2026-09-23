@@ -19,6 +19,12 @@ contract DrandChainInfoTest is Test {
 
     function test_ChainHashMatchesThePlan() public view {
         bytes memory hash = vm.parseJsonBytes(info, ".chain_hash");
+        // Assert the length before narrowing: a short hash would otherwise be zero-padded into a
+        // bytes32 that could still compare equal to something, which is the exact failure this
+        // test exists to catch.
+        assertEq(hash.length, 32, "chain hash is not 32 bytes");
+        // casting to 'bytes32' is safe because the length is asserted to be exactly 32 above.
+        // forge-lint: disable-next-line(unsafe-typecast)
         assertEq(bytes32(hash), EXPECTED_CHAIN_HASH, "evmnet chain hash is not what the plan states");
     }
 
