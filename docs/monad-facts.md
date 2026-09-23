@@ -1,6 +1,10 @@
 # Monad — facts, with sources
 
-**Retrieved 2026-09-23.** Docs stated network version `v0.15.2` / `MONAD_NINE`.
+**Retrieved 2026-09-23.** Versions per the canonical
+[current-facts](https://docs.monad.xyz/ai/current-facts) page: mainnet **`v0.16.1`**, testnet
+**`v0.16.2`**, both revision **`MONAD_TEN`**. (The Network Information page still showed
+`v0.15.2` / `MONAD_NINE`; where the two disagree, current-facts wins — it is the page Monad
+maintains for exactly this purpose.)
 
 Every figure here carries the URL it came from. Nothing in this file is written from memory, and
 nothing that contradicts a live RPC answer survives — see [§7](#7-verification-against-the-live-network).
@@ -11,13 +15,16 @@ nothing that contradicts a live RPC answer survives — see [§7](#7-verificatio
 | --- | --- | --- |
 | Chain ID | `143` | `10143` ⚠️ |
 | Native token | MON | MON |
-| Primary RPC | `https://rpc.monad.xyz` | `https://testnet-rpc.monad.xyz` ⚠️ |
-| Explorer | `https://monadvision.com`, `https://monadscan.com` | `https://testnet.monadscan.com` ⚠️ |
+| Primary RPC | `https://rpc.monad.xyz` | `https://testnet-rpc.monad.xyz` |
+| WebSocket | `wss://rpc.monad.xyz` | `wss://testnet-rpc.monad.xyz` |
+| Explorer | `https://monadvision.com`, `https://monadscan.com` | `https://testnet.monadvision.com`, `https://testnet.monadscan.com` |
+| App hub | — | `https://testnet.monad.xyz` |
 | Faucet | — | `https://faucet.monad.xyz` |
 
-⚠️ Testnet rows are **not** from the Network Information page, which documents mainnet only. They
-come from search results and the faucet's add-network page (which returned HTTP 429 when fetched).
-Step 1.2 confirms them against the RPC itself; until then they are unverified.
+Testnet rows are confirmed twice over: against the canonical
+[current-facts](https://docs.monad.xyz/ai/current-facts) page, and against the RPC itself at
+step 1.2. The Network Information page documents mainnet only, which is why an earlier draft of
+this file had them marked unverified.
 
 Mainnet RPC endpoints and their rate limits:
 
@@ -38,12 +45,17 @@ Source: https://docs.monad.xyz/developer-essentials/network-information
 | Property | Value |
 | --- | --- |
 | Block frequency | 300 ms |
+| Speculative finality | 300 ms — 1 slot |
 | Finalized | 2 blocks — 600 ms |
+| Block gas limit | 150,000,000 |
+| **Per-transaction gas limit** | **30,000,000** |
+| Gas throughput | 500M gas/s |
+| Design throughput | 10,000+ TPS |
 | Verified (state root certainty) | 3 further blocks — 900 ms total |
 | EVM fork | **Fusaka.** "All opcodes as of the Fusaka fork are supported" |
 | Precompiles | All Ethereum precompiles as of Fusaka (`0x01`–`0x11`), plus P256 at `0x0100` (EIP-7951) and staking at `0x1000` |
 
-Source: https://docs.monad.xyz/developer-essentials/summary
+Sources: https://docs.monad.xyz/developer-essentials/summary, https://docs.monad.xyz/ai/current-facts
 
 **A 3-second beacon period against 600 ms finality leaves five blocks of margin per drand round.**
 That is the arithmetic PLAN.md §2 rests on, and it now has a source.
@@ -172,6 +184,7 @@ is no correct reading of it at all.
 | `latest` is speculative | The indexer reads `finalized` only. A reorged tick in a chart is a broken conformance claim | 10.1 |
 | Fusaka fork | Cancun opcodes (`TSTORE`/`TLOAD`/`MCOPY`) are available. solc 0.8.28 tops out at `cancun`, so that is the correct pin | 0.4 |
 | No blob transactions | Epoch data goes in calldata or an event. Already assumed in PLAN.md §4 | 5.1 |
+| **Per-transaction gas limit is 30,000,000** | A hard ceiling no amount of bidding raises. At 565k per pairing that is **at most ~53 verifications in one transaction**, and it bounds the terminal re-execution of a disputed tick and any single-transaction epoch operation. Stated only on the current-facts page — not in Developer Essentials | 5.1, 6.4, 6.5 |
 | `block.timestamp` resolves to 1 s while blocks are 300 ms | ~3 blocks share a timestamp. Timestamps cannot identify a beacon round even approximately. Proven floor only, everywhere | 2.3, 5.2, 8.2 |
 | Base fee 100 gwei, charged on `gas_limit` | A 565k-gas pairing verification costs ~0.0565 MON per attempt, successful or reverted. Bond sizing and faucet budget follow from this | 1.4, 5.4 |
 | Block gas limit 150,000,000 | An epoch's terminal re-execution has generous headroom; epoch size is bounded by calldata and by `SSTORE` growth, not by block gas | 5.1, 6.5 |
