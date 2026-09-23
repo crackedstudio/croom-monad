@@ -130,12 +130,34 @@ Source: https://docs.monad.xyz/reference/rpc-differences
 
 ## 7. Verification against the live network
 
-Pending — step 1.2. Anything below is a claim until the RPC agrees with it.
+Checked 2026-09-23 against `https://testnet-rpc.monad.xyz`. Client reported **`Monad/0.16.2`** —
+the docs' `v0.15.2` / `MONAD_NINE` refers to mainnet; testnet runs ahead.
 
-- [ ] `eth_chainId` on the testnet RPC returns `10143`
-- [ ] observed block cadence ≈ 300 ms
-- [ ] `finalized` lags `latest` by ≈ 2 blocks
-- [ ] testnet explorer resolves
+| Claim | Result |
+| --- | --- |
+| Testnet chain ID is `10143` | ✅ `eth_chainId` → `10143` |
+| Testnet RPC is `https://testnet-rpc.monad.xyz` | ✅ responds |
+| Block cadence ≈ 300 ms | ✅ 1,000 blocks spanned 302 s → **302 ms/block** |
+| `finalized` lags `latest` by 2 blocks / 600 ms | ✅ measured in a single batched request: latest `65001707`, safe `−1`, finalized `−2` |
+| Testnet explorer resolves | ✅ `https://testnet.monadscan.com` → 200. `testnet.monadexplorer.com` → 403, `faucet.monad.xyz` → 429 (rate-limited, not down) |
+
+Measured at the same time: base fee **100 gwei**, block gas limit **150,000,000**.
+
+The lag must be read from a *batched* request. Three sequential `cast` calls put `finalized` numerically
+*ahead* of `latest`, because the chain advanced ~3 blocks while the calls were in flight. At 300 ms,
+any two RPC calls are already a different chain.
+
+### Unsourced finding: timestamps have 1-second resolution
+
+`block.timestamp` is in whole seconds while blocks are 300 ms apart, so **roughly three consecutive
+blocks carry the same timestamp** — observed directly above, where `latest` and `safe` both read
+`1790162486`.
+
+This is not in the docs and it sharpens PLAN.md §3.1 from a design preference into a correctness
+requirement. A timestamp on Monad cannot even distinguish two adjacent blocks, let alone estimate
+which 3-second drand round is current. Every window, buffer and lock keys off the proven round
+floor. There is no fallback reading of `block.timestamp` that would merely be *less precise* — there
+is no correct reading of it at all.
 
 ## 8. What this changes for us
 
@@ -150,4 +172,7 @@ Pending — step 1.2. Anything below is a claim until the RPC agrees with it.
 | `latest` is speculative | The indexer reads `finalized` only. A reorged tick in a chart is a broken conformance claim | 10.1 |
 | Fusaka fork | Cancun opcodes (`TSTORE`/`TLOAD`/`MCOPY`) are available. solc 0.8.28 tops out at `cancun`, so that is the correct pin | 0.4 |
 | No blob transactions | Epoch data goes in calldata or an event. Already assumed in PLAN.md §4 | 5.1 |
+| `block.timestamp` resolves to 1 s while blocks are 300 ms | ~3 blocks share a timestamp. Timestamps cannot identify a beacon round even approximately. Proven floor only, everywhere | 2.3, 5.2, 8.2 |
+| Base fee 100 gwei, charged on `gas_limit` | A 565k-gas pairing verification costs ~0.0565 MON per attempt, successful or reverted. Bond sizing and faucet budget follow from this | 1.4, 5.4 |
+| Block gas limit 150,000,000 | An epoch's terminal re-execution has generous headroom; epoch size is bounded by calldata and by `SSTORE` growth, not by block gas | 5.1, 6.5 |
 | P256 at `0x0100`, 6,900 gas | Passkey-signed market entry is cheap here. Out of scope; one sentence in the writeup | 11.3 |
