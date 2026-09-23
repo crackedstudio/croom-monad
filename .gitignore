@@ -1,0 +1,21 @@
+# foundry
+out/
+cache/
+broadcast/*/dry-run/
+docs/book/
+
+# node
+node_modules/
+dist/
+.next/
+*.tsbuildinfo
+
+# env & keys — never commit
+.env
+.env.*
+!.env.example
+*.key
+keystore/
+
+# os
+.DS_Store
