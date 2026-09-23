@@ -13,8 +13,8 @@ BN254 primitives are sound and its evmnet demo is exactly our use case. The pack
 contract is not: it is built for Randamu's own threshold network and would never verify a drand
 beacon.
 
-Real evmnet rounds verify correctly on Monad through this library — rounds 1, 1000 and 20880831 all
-return `true` (`src/probe/BeaconVerifyReport.sol`).
+Real evmnet rounds verify correctly on Monad through this library — **32 of 32 sampled rounds
+return `true`** (`bench/verify-gas.md`), at 611,011–620,774 gas.
 
 ## The trap: two different DSTs
 
@@ -48,7 +48,9 @@ multiplication would not have the gas profile its Ethereum benchmarks suggest.
 It does not. `hashToPoint` is `hashToField` (keccak, pure) → `mapToPoint` ×2 (SVDW) → one `ecAdd`.
 `scalarMulG1Point` and `scalarMulG1Base` exist in the library but nothing on the verification path
 calls them. SVDW uses `modexp` (`0x05`) for Legendre symbol, square root and inverse — priced
-"variable" on Monad, which is why it got measured rather than assumed. See below: it is cheap.
+"variable" on Monad, which is why it got measured rather than assumed. It is cheap: 44,881–54,644
+gas for the whole of hash-to-point, against 565,928 for the pairing. `modexp` is 8% of the cost,
+not a hazard (`bench/verify-gas.md`).
 
 ### 2. A reverting `0x08` burns everything forwarded — real, and unmitigated here ⚠️
 
