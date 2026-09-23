@@ -61,14 +61,17 @@ Cheap, and everything else assumes it.
 | 1.4 | `GasProbe`: call `0x08` with a valid pairing input and with an invalid one; measure on **testnet**, not in a local EVM. Record in `bench/precompiles.md` | **GATE 1a — the pairing gas cost on Monad is a number in the repo** | `bench(ops): measured 0x08 pairing gas on monad testnet` ✅ |
 | 1.5 | While the probe is up: `0x01`, `0x06`, `0x07`, `keccak` baseline, cold vs warm SLOAD across a 128-slot page boundary | The gas table has a row for every primitive we will use | `bench(ops): precompile and storage-page gas baselines` ✅ |
 
-> **Status, 23 Sep.** 1.1, 1.2 and 1.4 are done — and 1.4 came in *without* a funded key. The
-> constructor-return probes in `src/probe/` report a live node's gas schedule through a plain
-> `eth_call`, so the day-one gate was answerable before a faucet claim cleared. Gate 1a passed:
-> `0x08` costs `225,000 + 170,000 × k` on Monad, exactly as documented, and the pairing computes
-> correctly. See `bench/precompiles.md`.
+> **Phase 1 complete, 23 Sep — all five steps, all gates passed.**
 >
-> Outstanding and blocked on a funded deployer: **1.3** (trivial deployment, explorer link), the
-> real-transaction re-measurement of 1.4, and the storage-page half of **1.5**.
+> - **Gate 1a:** `0x08` costs `225,000 + 170,000 × k`, exactly as documented, and computes correctly. 565,124 gas for the two-point check drand needs — confirmed by `eth_call` and again against the deployed probe.
+> - Storage pages are exactly 128 slots, boundary at multiples of 128. Cold 8,100, warm 100. Writes decompose as `100 + 8,000·page-load + 2,800·page-write + 17,000·new-slot`.
+> - **Monad charges `gas_limit`** — verified, not inherited. And `receipt.gasUsed` reports the *billed* figure, so execution cost cannot be profiled from receipts at all.
+> - Two probes deployed, recorded in `deployments/10143/`.
+>
+> Findings: `bench/precompiles.md`, `bench/storage-paging.md`, `bench/fee-model.md`.
+>
+> Total spend ~0.47 MON, of which 0.29 was padding on two inconclusive fee-model runs — an object
+> lesson in the very thing being measured.
 
 **If 1.4 fails** — pairing missing, mispriced beyond affordability, or behaving differently — stop.
 Do not start Phase 2. Raise it the same day; there are still 19 days to change course, and there
