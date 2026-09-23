@@ -80,7 +80,7 @@ will not be on day 10.
 
 | # | Step | Done when | Commit |
 | --- | --- | --- | --- |
-| 2.1 | Fetch evmnet `/info` from the drand HTTP API. Confirm chain hash, scheme `bls-bn254-unchained-on-g1`, period, genesis, public key. Commit the raw JSON as a fixture with its retrieval date. Do not hardcode the hash from the plan until this agrees with it | Fixture on disk; plan's hash confirmed or the discrepancy raised | `test(entropy): pin evmnet chain info fetched from drand api` |
+| 2.1 | Fetch evmnet `/info` from the drand HTTP API. Confirm chain hash, scheme `bls-bn254-unchained-on-g1`, period, genesis, public key. Commit the raw JSON as a fixture with its retrieval date. Do not hardcode the hash from the plan until this agrees with it | Fixture on disk; plan's hash confirmed or the discrepancy raised | `test(entropy): pin evmnet chain info fetched from drand api` ✅ |
 | 2.2 | Vendor `randa-mu/bls-solidity` as a submodule at a pinned commit. Audit-read it and write `docs/audits/bls-solidity.md`: what it assumes, what it does not check, what we must check ourselves | Read notes exist, commit pinned | `chore(entropy): vendor bls-solidity at pinned commit` |
 | 2.3 | `Entropy.sol`: `verifyRound(round, signature)` → hash-to-G1 over the round number alone, pairing check against the G2 public key. Proven-floor storage, monotonic. **No block timestamps anywhere in this contract** | Unit tests green against ≥20 real rounds | `feat(entropy): round verification and proven floor` |
 | 2.4 | Negative tests: wrong round number, malleated signature, point not on curve, point not in subgroup, infinity, zero, a valid signature for a different round replayed | Every rejection path has a named test | `test(entropy): malformed and replayed signature rejection` |
