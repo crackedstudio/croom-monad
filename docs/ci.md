@@ -18,3 +18,19 @@ complete vector set to sweep.
 No testnet deploys, no key material, no faucet calls. Deployment is a deliberate local act that
 writes a file into `deployments/`; a workflow that can spend the deployer's balance is a workflow
 that can be triggered by a pull request.
+
+## A local hazard worth knowing about
+
+`forge build` runs the linter, and `deny = "warnings"` makes a lint finding abort the build. If that
+happens, **artifacts for the file you just added are never written** — and a subsequent `forge test`
+quietly falls back to the cached artifacts and reports green on the *old* set of tests. Observed on
+23 Sep: a lint abort caused a run to report `8 passed` when the suite actually held 13, with an
+entire test file silently absent.
+
+CI is not exposed to this — it checks out fresh and its `build` step fails the job outright. The
+trap is local, and it is a nasty one because the signal is a green suite.
+
+Two habits that defuse it:
+
+- Run `make check` rather than `forge test` alone. It is ordered `build lint test`, so a lint abort stops the chain instead of falling through to a stale pass.
+- Treat a *drop* in the reported test count as a failure, not a curiosity. `forge test --list` shows what the binary actually contains; `forge clean` resolves any doubt.
