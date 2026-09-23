@@ -1,0 +1,61 @@
+# Croom on Monad — toolchain is pinned, not floating.
+# Rationale for every setting here: docs/toolchain.md
+
+[profile.default]
+src = "src"
+test = "test"
+script = "script"
+out = "out"
+libs = ["lib"]
+
+# Pinned exactly. A derivation that is "bit-exact" against a compiler we did not
+# pin is a claim about this afternoon, not about the artifact we submit.
+solc_version = "0.8.28"
+
+# Conservative until step 1.1 confirms what Monad testnet actually accepts.
+# Bump to cancun (tstore/mcopy) only after that is a verified fact in docs/monad-facts.md.
+evm_version = "shanghai"
+
+optimizer = true
+optimizer_runs = 1_000_000
+
+# 128 KB contract / 256 KB init code on Monad — we want `forge build --sizes`
+# to be meaningful, so never silently allow oversized bytecode.
+bytecode_hash = "none"
+cbor_metadata = false
+
+# Rounding is the whole game (PLAN.md §6). A truncation bug that only shows up
+# one run in ten thousand is a bug we ship, so fuzz hard by default.
+fuzz = { runs = 1024 }
+invariant = { runs = 256, depth = 128, fail_on_revert = false }
+
+# Warnings are errors. Unused parameters and shadowed names are how a derivation
+# silently reads the wrong variable.
+deny = "warnings"
+
+[profile.ci]
+fuzz = { runs = 8192 }
+invariant = { runs = 1024, depth = 256 }
+verbosity = 3
+
+# Nightly sweep (step 7.3): long fuzz, no shortcuts.
+[profile.deep]
+fuzz = { runs = 262_144 }
+invariant = { runs = 8192, depth = 512 }
+
+[fmt]
+line_length = 110
+tab_width = 4
+bracket_spacing = false
+int_types = "long"
+multiline_func_header = "params_first"
+number_underscore = "thousands"
+sort_imports = true
+
+[rpc_endpoints]
+monad_testnet = "${MONAD_TESTNET_RPC}"
+monad_mainnet = "${MONAD_MAINNET_RPC}"
+
+[etherscan]
+# Explorer/verifier details are filled in at step 1.1 from Network Information,
+# not from memory.
