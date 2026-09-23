@@ -12,9 +12,10 @@ libs = ["lib"]
 # pin is a claim about this afternoon, not about the artifact we submit.
 solc_version = "0.8.28"
 
-# Conservative until step 1.1 confirms what Monad testnet actually accepts.
-# Bump to cancun (tstore/mcopy) only after that is a verified fact in docs/monad-facts.md.
-evm_version = "shanghai"
+# Monad supports all opcodes as of the Fusaka fork (docs/monad-facts.md §2, verified
+# against testnet at step 1.2), so Cancun is safely available. solc 0.8.28 tops out at
+# cancun, which makes this the highest pin the pinned compiler can express.
+evm_version = "cancun"
 
 optimizer = true
 optimizer_runs = 1_000_000

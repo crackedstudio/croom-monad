@@ -13,9 +13,11 @@ toolchain.
 
 ## Settings that are decisions, not defaults
 
-**`evm_version = "shanghai"`** — conservative on purpose. Step 1.1 establishes what Monad testnet
-actually accepts; bump to `cancun` (transient storage, `MCOPY`) only once that is a verified line in
-`docs/monad-facts.md`, never on the strength of a recollection.
+**`evm_version = "cancun"`** — Monad supports every opcode as of the **Fusaka** fork
+(`docs/monad-facts.md` §2), so transient storage and `MCOPY` are available. solc `0.8.28` cannot
+express anything later than `cancun`, so this is the ceiling of the pinned compiler rather than a
+ceiling of the chain. Raising it further means moving the solc pin first, and re-running the
+conformance sweep after.
 
 **`bytecode_hash = "none"`, `cbor_metadata = false`** — identical sources produce identical
 bytecode, so anyone can reproduce our deployed artifacts without matching our metadata.
