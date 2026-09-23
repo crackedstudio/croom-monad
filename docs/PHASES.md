@@ -1,0 +1,232 @@
+# Croom on Monad — execution breakdown
+
+Derived from [PLAN.md](PLAN.md). The plan says *what and why*; this says *what to do next, and what
+"done" means*. 12 phases, 61 steps, one commit per step.
+
+- **Start:** 23 Sep 2026 · **Submit:** morning of 13 Oct 2026 · **20 days**
+- **Gates:** three. A gate is a demonstrable fact, not a percentage. Do not enter the next phase until the current gate is true.
+
+---
+
+## Commit discipline
+
+**One step = one commit.** Not one per day, not one per file, not one big "week 1" commit. The step
+list below *is* the commit log we intend to end up with.
+
+**Message format:** `type(scope): summary`
+
+- Types: `feat` `fix` `test` `bench` `perf` `refactor` `docs` `chore` `ci`
+- Scopes: `ops` `entropy` `tick` `registry` `ladder` `market` `web` `indexer`
+- Summary in the imperative, lowercase, no trailing period.
+
+**Every commit must leave `forge test` green**, with one deliberate exception: a red-first TDD step
+is committed as `test(scope): ... (failing)` and the very next commit turns it green. Phase 6 uses
+this on purpose.
+
+**Rules that keep the log worth having**
+
+1. Measured numbers (gas, timings, costs) get committed into `bench/` as files. Numbers that live only in terminal scrollback do not exist when the writeup gets written on day 19.
+2. Every testnet deployment commits its address and tx hash into `deployments/`. The README's address table is generated from those files, never hand-typed.
+3. Anything fetched from a live source (drand chain info, a beacon round, a Monad doc figure) is committed as a fixture *with its retrieval date*. We verify, then pin — we never trust a number we typed from memory.
+4. Gates are annotated tags: `gate-1`, `gate-2`, `gate-3`, `submission`. `git tag -a gate-1 -m "<the fact that is now true>"`.
+5. No secrets, ever — deployer keys come from `.env` (gitignored) or a keystore. A committed key means rotating on a deadline.
+
+---
+
+## Phase 0 — Bootstrap · Day 0 (today)
+
+Cheap, and everything else assumes it.
+
+| # | Step | Done when | Commit |
+| --- | --- | --- | --- |
+| 0.1 | Repo, `.gitignore`, README skeleton | `git log` is non-empty | `chore(ops): initialize repository` ✅ |
+| 0.2 | Source plan into the repo | Plan is versioned, not in a chat window | `docs: add source build plan` ✅ |
+| 0.3 | This breakdown | Steps and gates are written down before any code | `docs: add phased execution breakdown` |
+| 0.4 | Install Foundry; `forge init` layout; pin the toolchain version in `foundry.toml` and `.tool-versions`; solc pinned exactly | `forge build` succeeds on a pinned version | `chore(ops): foundry scaffold with pinned toolchain` |
+| 0.5 | CI: `forge fmt --check`, `forge build --sizes`, `forge test` on every push | A push runs the suite | `ci(ops): build, fmt and test on push` |
+| 0.6 | `.env.example`, RPC/key handling, deployer policy note | A new machine can be set up from the README alone | `chore(ops): env template and key policy` |
+
+---
+
+## Phase 1 — Monad ground truth · Day 1
+
+> The highest-risk work in the plan, and the cheapest to fail at. Nothing here is written from
+> memory — every figure is measured or fetched today.
+
+| # | Step | Done when | Commit |
+| --- | --- | --- | --- |
+| 1.1 | Read Developer Essentials → differences, precompiles, network information, RPC differences. Write `docs/monad-facts.md`: chain id, RPC, explorer, faucet, block time, finality, size limits — each with the URL it came from and the date | Every figure has a source link | `docs(ops): monad network facts with sources` |
+| 1.2 | Verify those facts against the live network (`eth_chainId`, a block subscription for real block cadence). Correct the doc where reality and docs disagree | Doc matches the RPC's own answers | `docs(ops): reconcile monad facts against live rpc` |
+| 1.3 | Faucet, deployer funded, trivial contract deployed and verified on the explorer | An explorer link exists | `chore(ops): first testnet deployment recorded` |
+| 1.4 | `GasProbe`: call `0x08` with a valid pairing input and with an invalid one; measure on **testnet**, not in a local EVM. Record in `bench/precompiles.md` | **GATE 1a — the pairing gas cost on Monad is a number in the repo** | `bench(ops): measured 0x08 pairing gas on monad testnet` |
+| 1.5 | While the probe is up: `0x01`, `0x06`, `0x07`, `keccak` baseline, cold vs warm SLOAD across a 128-slot page boundary | The gas table has a row for every primitive we will use | `bench(ops): precompile and storage-page gas baselines` |
+
+**If 1.4 fails** — pairing missing, mispriced beyond affordability, or behaving differently — stop.
+Do not start Phase 2. Raise it the same day; there are still 19 days to change course, and there
+will not be on day 10.
+
+---
+
+## Phase 2 — Entropy: beacon verification · Day 2 · **GATE 1**
+
+| # | Step | Done when | Commit |
+| --- | --- | --- | --- |
+| 2.1 | Fetch evmnet `/info` from the drand HTTP API. Confirm chain hash, scheme `bls-bn254-unchained-on-g1`, period, genesis, public key. Commit the raw JSON as a fixture with its retrieval date. Do not hardcode the hash from the plan until this agrees with it | Fixture on disk; plan's hash confirmed or the discrepancy raised | `test(entropy): pin evmnet chain info fetched from drand api` |
+| 2.2 | Vendor `randa-mu/bls-solidity` as a submodule at a pinned commit. Audit-read it and write `docs/audits/bls-solidity.md`: what it assumes, what it does not check, what we must check ourselves | Read notes exist, commit pinned | `chore(entropy): vendor bls-solidity at pinned commit` |
+| 2.3 | `Entropy.sol`: `verifyRound(round, signature)` → hash-to-G1 over the round number alone, pairing check against the G2 public key. Proven-floor storage, monotonic. **No block timestamps anywhere in this contract** | Unit tests green against ≥20 real rounds | `feat(entropy): round verification and proven floor` |
+| 2.4 | Negative tests: wrong round number, malleated signature, point not on curve, point not in subgroup, infinity, zero, a valid signature for a different round replayed | Every rejection path has a named test | `test(entropy): malformed and replayed signature rejection` |
+| 2.5 | Deploy to testnet. Verify a live round on-chain, floor bumps. Record address, tx hash and measured gas | **GATE 1 — a real evmnet round is verified on Monad and the floor moved** | `feat(entropy): testnet deployment verifying live evmnet rounds` → tag `gate-1` |
+
+---
+
+## Phase 3 — Fixed point and tick derivation · Days 3–5
+
+| # | Step | Done when | Commit |
+| --- | --- | --- | --- |
+| 3.1 | **Blocker, resolve before starting:** import the canonical derivation spec and the reference vector set from the existing Croom implementation into `spec/`. Pin the source revision | `spec/` holds the authority this phase is measured against | `docs(tick): import canonical derivation spec and vector set` |
+| 3.2 | `FixedPointMath`: `mul`, `div`, `sqrt`, `exp`, `ln` on `int256` at 1e18, truncating toward zero — inherited from Solidity's `/`, never from a rounding helper | Property tests assert truncation on both signs of zero-crossing | `feat(tick): fixed-point library with truncating semantics` |
+| 3.3 | Differential fuzz: `FixedPointMath` vs the reference implementation over the full input domain, including the extremes where `exp`/`ln` saturate | Fuzz runs clean at high `runs` | `test(tick): fixed-point differential fuzz against reference` |
+| 3.4 | `Tick.sol` — the pure map `(spec, round, beacon output) → next price`. Keccak only, no storage, no floating point. **One commit per price model** | Each model matches its vectors | `feat(tick): <model> price model` ×N |
+| 3.5 | Packed-hex fixture generator (TS): ~2,000 rounds sampled across every model and every edge case | Fixture regenerates deterministically from `spec/` | `test(tick): packed conformance fixture and generator` |
+| 3.6 | Foundry conformance test reading the packed fixture | **GATE 2a — sampled vectors pass bit-for-bit, suite runs in under 5s** | `test(tick): sampled conformance suite passes bit-exact` |
+| 3.7 | TypeScript derivation for the frontend, written from `spec/` — not ported from the Solidity | TS is an independent implementation, not a translation | `feat(web): typescript derivation from spec` |
+| 3.8 | Differential harness TS ↔ Solidity over every vector | Disagreement fails CI and is treated as a spec bug | `test(tick): typescript/solidity differential harness` |
+
+---
+
+## Phase 4 — Registry · Days 6–7 · **GATE 2**
+
+| # | Step | Done when | Commit |
+| --- | --- | --- | --- |
+| 4.1 | Spec encoding and `roomId = keccak256(spec)`. Store the hash; emit the body in an event | Round-trip test: event body re-hashes to the id | `feat(registry): content-addressed room specs` |
+| 4.2 | Immutability proof: no owner, no setter, no pause, no upgrade path. Storage-layout snapshot test that fails if anyone adds mutable state | A test, not a claim in a comment | `test(registry): immutability and absence of admin surface` |
+| 4.3 | Page-aware layout: proven floor, last finalised epoch, open-challenge pointer contiguous inside one 128-slot page. Document the slot map; assert it with a layout test | Gas measurement shows one cold page per checkpoint op | `perf(registry): contiguous hot-state layout for 128-slot pages` |
+| 4.4 | Deploy; script opens 50 Rooms spanning every price model | **GATE 2 — 50 Rooms live on testnet, specs provably immutable, derivation bit-exact** | `feat(registry): testnet deployment and room-opening script` → tag `gate-2` |
+
+---
+
+## Phase 5 — Ladder I: checkpoints · Days 8–10
+
+| # | Step | Done when | Commit |
+| --- | --- | --- | --- |
+| 5.1 | Merkle commitment over an epoch's ticks plus resulting state. Epoch sizing chosen against the calldata/event budget (no blobs on Monad) | Sizing decision recorded with its arithmetic | `feat(ladder): epoch merkle commitment` |
+| 5.2 | `postCheckpoint` with bond. Challenge window **measured in rounds above the proven floor**, never in seconds | Window cannot be advanced by a timestamp | `feat(ladder): checkpoint posting with round-denominated window` |
+| 5.3 | `finalize` — unchallenged checkpoints settle, callable by anyone, no privileged finalizer | Anyone can finalize; tests prove it | `feat(ladder): unattended finalization` |
+| 5.4 | Poster bot (TS): gas limits from `bench/`, never padded; balance-headroom alarm; `included` and `executed` as separate states because Monad charges on `gas_limit` and executes asynchronously | Bot survives an induced under-funding without losing its place | `feat(ops): poster bot with measured gas limits and reserve monitoring` |
+| 5.5 | Multi-hour unattended run on testnet; log committed | **GATE 2b — checkpoints finalize unattended over hours, with no human at the keyboard** | `chore(ops): multi-hour unattended checkpoint run log` |
+
+---
+
+## Phase 6 — Ladder II: the fraud proof · Days 11–13
+
+> The one thing that never gets cut. **Tests first, deliberately red** — "done" is defined by a
+> failing test turning green, so the definition cannot drift under deadline pressure.
+
+| # | Step | Done when | Commit |
+| --- | --- | --- | --- |
+| 6.1 | Write the adversarial suite *before* the game: liar at the first tick, the last tick, the middle; random epoch sizes; poster who abandons the game; challenger who abandons; challenger at minimum stake; two challengers; griefing poster | Suite compiles and fails for the right reasons | `test(ladder): adversarial fraud-proof suite (failing)` |
+| 6.2 | Single-step challenge and terminal resolve via `Tick`. **This alone is the day-13 cut-line fallback** — build it first so the fallback exists from day 11 | Suite's single-step cases pass | `feat(ladder): single-step challenge and terminal resolve` |
+| 6.3 | Bisection: logarithmic narrowing to one disputed tick, with per-move deadlines in rounds | Narrowing terminates for any epoch size | `feat(ladder): bisection to a single disputed tick` |
+| 6.4 | Bond settlement: the winner takes it, timeouts resolve against whoever went silent | No path leaves a bond stranded | `feat(ladder): bond settlement and timeout resolution` |
+| 6.5 | Invariant fuzz: *a dishonest poster with any strategy loses to one honest challenger* | Invariant holds at high `runs`; terminal-step gas is affordable at the intended bond size | `test(ladder): invariant — dishonest poster loses to one honest challenger` |
+| 6.6 | **Live on testnet:** post a knowingly dishonest checkpoint, challenge it, defeat it, take the bond. Commit every tx hash | **GATE 3 — the liar lost their bond on a public chain, and we can link to it** | `feat(ladder): live testnet fraud proof with recorded tx hashes` → tag `gate-3` |
+
+**Cut line, end of day 13:** if 6.3–6.4 are not green, ship 6.2 and stop. Write the bisection design
+into the writeup as a stated known limitation. A clear limitation beats a vague claim.
+
+---
+
+## Phase 7 — Conformance sweep and gas table · Day 14
+
+| # | Step | Done when | Commit |
+| --- | --- | --- | --- |
+| 7.1 | Stream the *complete* vector set through the deployed library, comparing every field | Full sweep green against the deployed bytecode, not just local | `test(tick): full vector sweep against deployed library` |
+| 7.2 | Gas table for every entry point, measured on Monad, committed to `bench/gas-table.md` | Every public function has a measured row | `bench(ops): gas table for all entry points` |
+| 7.3 | Nightly CI: full sweep plus long-running fuzz | Nightly is green and visible | `ci(ops): nightly full conformance sweep` |
+| 7.4 | Re-derive every bot gas limit from 7.2 | No padded limits anywhere — we pay on `gas_limit` | `fix(ops): tighten bot gas limits to measured values` |
+
+---
+
+## Phase 8 — Market · Days 15–16
+
+| # | Step | Done when | Commit |
+| --- | --- | --- | --- |
+| 8.1 | Parimutuel pool accounting: stake on direction or bucket for round `r` | Payout arithmetic exact, dust accounted, no mint | `feat(market): parimutuel pool accounting` |
+| 8.2 | Entry lock at a fixed offset above the proven floor, so no entry is possible once the round's output could exist | Late-entry test cannot be made to pass | `feat(market): entry lock keyed to proven floor` |
+| 8.3 | Resolution against the finalised ladder state; claims | Claims settle from a finalised epoch only | `feat(market): resolution and claims` |
+| 8.4 | Rake: single fee, stated plainly, no treasury, no admin withdrawal | Rake is a constant with a test asserting it is the only outflow | `feat(market): disclosed rake with no privileged withdrawal` |
+| 8.5 | Edge cases: zero-side pool, single staker, dust, reentrancy, claim after challenge overturns an epoch | Every case has a named test | `test(market): payout edge cases and reentrancy` |
+| 8.6 | Deploy; record address and gas | Live, addresses committed | `feat(market): testnet deployment` |
+
+**Cut line, end of day 16:** if Market is not green, drop it and submit as verifiable market
+infrastructure. The chart anyone can recompute is the stronger demo.
+
+---
+
+## Phase 9 — Client · Day 17
+
+| # | Step | Done when | Commit |
+| --- | --- | --- | --- |
+| 9.1 | App shell, wallet onboarding via Privy **or** Dynamic (pick one — bounty) | Connect works on Monad testnet | `feat(web): app shell with wallet onboarding` |
+| 9.2 | Chart derived in-browser from the beacon, **zero RPC calls** on the derivation path | Network panel shows drand only | `feat(web): chart derived in-browser from the beacon` |
+| 9.3 | Room browser over registry events | Rooms from Phase 4 are all browsable | `feat(web): room browser` |
+| 9.4 | "Verify against chain" toggle — derivation on one side, committed state on the other, agreement shown explicitly | Toggle shows agreement, and shows disagreement when fed a bad epoch | `feat(web): chain-agreement verification toggle` |
+| 9.5 | Offline mode: pre-fetched beacon rounds replay the full history with the network disconnected — this is the demo's third beat | Airplane mode renders the chart | `feat(web): offline re-derivation mode` |
+| 9.6 | Market entry UI with the rake disclosed on the face of it (skip if 8.x was cut) | Stake and claim work end to end | `feat(web): market entry and claim` |
+
+---
+
+## Phase 10 — Indexer · Day 18
+
+| # | Step | Done when | Commit |
+| --- | --- | --- | --- |
+| 10.1 | Envio handlers for room-opened, checkpoint-posted, challenge, resolve, finalize. **Default to finalised blocks** (read RPC Differences first) | Indexer reorg-safe by construction | `feat(indexer): envio handlers for rooms, checkpoints and challenges` |
+| 10.2 | Tick and epoch history API — no archival `eth_call`, since full nodes do not serve historical state | Frontend history needs no archive node | `feat(indexer): tick and epoch history api` |
+| 10.3 | Wire history into the chart | Long-range history loads | `feat(web): history from indexer` |
+| 10.4 | Risk surface: open challenges, bond exposure, epoch lag (Perpl analytics bounty; reuses 9.x) | One page, real numbers | `feat(web): ladder risk surface` |
+
+---
+
+## Phase 11 — Submission · Days 19–20
+
+| # | Step | Done when | Commit |
+| --- | --- | --- | --- |
+| 11.1 | Freeze on the 12th. Final deploy, all contracts verified, `deployments/` complete | Nothing lands after the freeze | `chore(ops): final testnet deploy and verified addresses` |
+| 11.2 | README: address table, gas table, and **the verifiable claim** — a Room ID and a round, with instructions to derive it from the public beacon and confirm it matches the chain | A stranger can reproduce it without asking us anything | `docs: submission readme with verifiable claim` |
+| 11.3 | Writeup: what was built inside the window, stated plainly and up front; known limitations (incl. bisection if cut); the P256/passkey sentence; why Monad in the terms of §2 | Honest about provenance before a judge has to discover it | `docs: submission writeup` |
+| 11.4 | Demo video, 2–3 min: open a Room → watch it tick → recompute offline → post a dishonest checkpoint → challenge → the liar loses the bond | The last beat is on camera | `docs: demo script and recording notes` |
+| 11.5 | Bounty submissions: Envio, wallet, Perpl | Each submitted with its own link | `docs: bounty submission notes` |
+| 11.6 | Submit on the **morning of the 13th** | Submitted | `chore(ops): submission freeze` → tag `submission` |
+
+---
+
+## Gate summary
+
+| Tag | The fact that must be true | Day |
+| --- | --- | --- |
+| `gate-1` | A real drand evmnet round is verified on Monad testnet, the proven floor moved, and the pairing's gas cost is a measured number in `bench/` | 2 |
+| `gate-2` | Derivation is bit-exact against sampled vectors, and 50 immutable Rooms are live | 7 |
+| `gate-3` | A dishonest checkpoint was posted on public testnet, challenged, and defeated — with tx hashes | 13 |
+| `submission` | Frozen, deployed, verified, written up | 20 |
+
+## Cut lines, decided in advance
+
+| Trigger | Cut | Never cut |
+| --- | --- | --- |
+| Behind at day 13 | Bisection → ship single-step challenge, state it in the writeup | The live fraud proof |
+| Behind at day 16 | Market → submit as verifiable market infrastructure | The in-browser re-derivation |
+| Behind at day 18 | Indexer polish, risk surface, Kuru | The verifiable claim in the README |
+
+## Open questions — answer before the phase that needs them
+
+| # | Question | Blocks | Needed by |
+| --- | --- | --- | --- |
+| Q1 | Where is the canonical derivation spec and the reference vector set? Is there an existing Croom implementation to import from and differential-test against? | Phase 3 entirely | Day 3 |
+| Q2 | Which price models ship? 3.4 is one commit per model, so the count sets the day 3–5 budget | 3.4, 4.4 | Day 3 |
+| Q3 | Privy or Dynamic? | 9.1 | Day 17 |
+| Q4 | Bond size, rake %, epoch length, challenge-window length in rounds | 5.2, 6.5, 8.4 | Day 8 |
+| Q5 | Where do the poster and challenger bots run for the multi-hour and demo-day windows? | 5.5 | Day 10 |
+| Q6 | Is anyone running an honest challenger during judging, or is the demo the only adversarial run? | 6.6, 11.4 | Day 13 |
+
+**Q1 is the sharpest.** Phase 3 has no authority to be bit-exact *against* until it is answered, and
+Phases 4–8 all sit behind Phase 3.
