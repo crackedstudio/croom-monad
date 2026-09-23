@@ -10,8 +10,15 @@ cast wallet import croom-deployer --interactive
 Scripts and bots then reference the account by name:
 
 ```bash
-forge script script/Deploy.s.sol --rpc-url monad_testnet --account croom-deployer --broadcast
+forge script script/DeployProbe.s.sol --rpc-url monad_testnet \
+  --account croom-deployer --sender 0x631a6A936485FA0cbA53c37A671aaf505F16d08e --broadcast
 ```
+
+**Both flags are required.** `--account` is consulted only when the script broadcasts; the
+simulation that runs first uses Foundry's default sender (`0x1804c8AB…`) unless `--sender` names
+the address. With `--account` alone a script simulates as the wrong account and fails before ever
+prompting for a password — which reads like a broken keystore and is not one. `make deploy-probe`
+passes both.
 
 ## Four accounts, deliberately separate
 

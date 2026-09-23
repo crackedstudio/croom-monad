@@ -2,10 +2,15 @@
 # Everything under "measure" is read-only and needs no account (docs/keys.md).
 
 DEPLOYER_ACCOUNT ?= croom-deployer
+# forge script resolves --account only when it broadcasts; the simulation that runs first
+# uses Foundry's default sender unless --sender says otherwise. Passing only --account makes
+# the script simulate as 0x1804c8...  and fail the deployer assertion before ever prompting
+# for a password. Both flags, always.
+DEPLOYER_ADDRESS ?= 0x631a6A936485FA0cbA53c37A671aaf505F16d08e
 RPC              ?= monad_testnet
 export GIT_COMMIT = $(shell git rev-parse --short HEAD)
 
-.PHONY: build test lint check measure-pairing measure-precompiles measure-storage deploy-probe measure-pairing-tx
+.PHONY: build test lint check measure-pairing measure-precompiles measure-storage whoami-deployer deploy-probe measure-pairing-tx
 
 build:  ; forge build --sizes
 test:   ; forge test
@@ -34,7 +39,12 @@ measure-storage:
 # --- requires the funded deployer; will prompt for the keystore password -----
 deploy-probe:
 	forge script script/DeployProbe.s.sol --rpc-url $(RPC) \
-	  --account $(DEPLOYER_ACCOUNT) --broadcast
+	  --account $(DEPLOYER_ACCOUNT) --sender $(DEPLOYER_ADDRESS) --broadcast
+
+# Confirms the keystore holds the funded address. Prompts for the password and prints an
+# address; it signs nothing and sends nothing.
+whoami-deployer:
+	@cast wallet address --account $(DEPLOYER_ACCOUNT)
 
 # End-to-end cost of one pairing check as a real transaction, for comparison
 # against the eth_call figure in bench/precompiles.md.

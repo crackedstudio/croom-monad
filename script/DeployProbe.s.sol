@@ -29,7 +29,13 @@ contract DeployProbe is Script {
         if (deployer != expected) {
             console.log("expected deployer:", expected);
             console.log("actual deployer:  ", deployer);
-            revert("wrong deployer: check --account, or set EXPECTED_DEPLOYER to override");
+            // 0x1804c8AB... is Foundry's default sender. Seeing it here means --sender was
+            // omitted: --account alone is consulted only at broadcast, so the simulation ran
+            // as nobody in particular and this check fired before any password prompt.
+            if (deployer == 0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38) {
+                console.log("that is Foundry's default sender - add --sender");
+            }
+            revert("wrong deployer: pass --sender as well as --account, or set EXPECTED_DEPLOYER");
         }
         require(deployer.balance > 0, "deployer has no balance");
 
