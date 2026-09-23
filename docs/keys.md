@@ -11,7 +11,7 @@ Scripts and bots then reference the account by name:
 
 ```bash
 forge script script/DeployProbe.s.sol --rpc-url monad_testnet \
-  --account croom-deployer --sender 0x631a6A936485FA0cbA53c37A671aaf505F16d08e --broadcast
+  --account croom-deployer --sender 0xc50f1FbD1c36a2305B257376eb2264C3bB6179e8 --broadcast
 ```
 
 **Both flags are required.** `--account` is consulted only when the script broadcasts; the

@@ -17,10 +17,14 @@ import {VmSafe} from "forge-std/Vm.sol";
 /// Writes `deployments/<chainid>/GasProbe.json`. The README's address table is generated from
 /// those files, never hand-typed.
 contract DeployProbe is Script {
-    /// @dev The account funded at block 65004032. Deploying from anything else is a mistake worth
-    /// catching before it costs a transaction, not after — there are four keystores on this
-    /// machine and their addresses are not readable without a password.
-    address internal constant EXPECTED_DEPLOYER = 0x631a6A936485FA0Cba53c37A671AAF505F16d08e;
+    /// @dev The `croom-deployer` keystore, confirmed by `make whoami-deployer` and holding the
+    /// faucet's 5 MON. Deploying from anything else is a mistake worth catching before it costs a
+    /// transaction — there are four keystores on this machine and a keystore file does not carry
+    /// its address in the clear, so the only way to know is to ask it.
+    ///
+    /// This constant was briefly wrong: it held the `to` address of the faucet transaction, which
+    /// is the faucet *contract* rather than the recipient. The assertion is what surfaced that.
+    address internal constant EXPECTED_DEPLOYER = 0xc50f1FbD1c36a2305B257376eb2264C3bB6179e8;
 
     function run() external {
         address deployer = msg.sender;

@@ -6,7 +6,7 @@ DEPLOYER_ACCOUNT ?= croom-deployer
 # uses Foundry's default sender unless --sender says otherwise. Passing only --account makes
 # the script simulate as 0x1804c8...  and fail the deployer assertion before ever prompting
 # for a password. Both flags, always.
-DEPLOYER_ADDRESS ?= 0x631a6A936485FA0cbA53c37A671aaf505F16d08e
+DEPLOYER_ADDRESS ?= 0xc50f1FbD1c36a2305B257376eb2264C3bB6179e8
 RPC              ?= monad_testnet
 export GIT_COMMIT = $(shell git rev-parse --short HEAD)
 
