@@ -1,0 +1,52 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+env:
+  FOUNDRY_PROFILE: ci
+
+jobs:
+  contracts:
+    name: build and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: install foundry (pinned — see docs/toolchain.md)
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.4.3
+
+      - name: assert the toolchain is the pinned one
+        run: |
+          forge --version
+          forge --version | grep -q '1.4.3' || { echo "::error::forge is not the pinned 1.4.3"; exit 1; }
+
+      - name: format
+        run: forge fmt --check
+
+      # 128 KB contract / 256 KB init code on Monad. --sizes makes an overrun
+      # visible on the commit that causes it, not on deploy day.
+      - name: build
+        run: forge build --sizes
+
+      - name: test
+        run: forge test -vvv
+
+      # A green suite that skipped everything is worse than a red one.
+      - name: assert tests actually ran
+        run: |
+          forge test --json > /tmp/results.json
+          python3 - <<'PY'
+          import json
+          results = json.load(open("/tmp/results.json"))
+          total = sum(len(suite["test_results"]) for suite in results.values())
+          print(f"{total} tests across {len(results)} suites")
+          if total == 0:
+              raise SystemExit("::error::no tests ran")
+          PY
