@@ -21,7 +21,10 @@ contract BeaconVerifyReport {
     /// Randamu's own threshold network.
     string internal constant DST = "BLS_SIG_BN254G1_XMD:KECCAK-256_SVDW_RO_NUL_";
 
-    constructor(uint64 round, bytes memory signature) {
+    constructor(
+        uint64 round,
+        bytes memory signature
+    ) {
         // evmnet public key, as served by the drand API. The struct orders each Fp2 coordinate
         // with the imaginary part at index 1, so the four API words land as x[1], x[0], y[1], y[0].
         BLS.PointG2 memory publicKey = BLS.PointG2(
@@ -37,7 +40,8 @@ contract BeaconVerifyReport {
 
         uint256 t0 = gasleft();
         // Unchained: the signed message is the round number alone. No predecessor, no chain walk.
-        BLS.PointG1 memory message = BLS.hashToPoint(bytes(DST), abi.encodePacked(keccak256(abi.encodePacked(round))));
+        BLS.PointG1 memory message =
+            BLS.hashToPoint(bytes(DST), abi.encodePacked(keccak256(abi.encodePacked(round))));
         uint256 gasHashToPoint = t0 - gasleft();
 
         uint256 t1 = gasleft();
