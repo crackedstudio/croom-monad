@@ -41,10 +41,10 @@ Cheap, and everything else assumes it.
 | --- | --- | --- | --- |
 | 0.1 | Repo, `.gitignore`, README skeleton | `git log` is non-empty | `chore(ops): initialize repository` ✅ |
 | 0.2 | Source plan into the repo | Plan is versioned, not in a chat window | `docs: add source build plan` ✅ |
-| 0.3 | This breakdown | Steps and gates are written down before any code | `docs: add phased execution breakdown` |
-| 0.4 | Install Foundry; `forge init` layout; pin the toolchain version in `foundry.toml` and `.tool-versions`; solc pinned exactly | `forge build` succeeds on a pinned version | `chore(ops): foundry scaffold with pinned toolchain` |
-| 0.5 | CI: `forge fmt --check`, `forge build --sizes`, `forge test` on every push | A push runs the suite | `ci(ops): build, fmt and test on push` |
-| 0.6 | `.env.example`, RPC/key handling, deployer policy note | A new machine can be set up from the README alone | `chore(ops): env template and key policy` |
+| 0.3 | This breakdown | Steps and gates are written down before any code | `docs: add phased execution breakdown` ✅ |
+| 0.4 | Install Foundry; `forge init` layout; pin the toolchain version in `foundry.toml` and `.tool-versions`; solc pinned exactly | `forge build` succeeds on a pinned version | `chore(ops): foundry scaffold with pinned toolchain` ✅ |
+| 0.5 | CI: `forge fmt --check`, `forge build --sizes`, `forge test` on every push | A push runs the suite | `ci(ops): build, fmt and test on push` ✅ |
+| 0.6 | `.env.example`, RPC/key handling, deployer policy note | A new machine can be set up from the README alone | `chore(ops): env template and key policy` ✅ |
 
 ---
 
