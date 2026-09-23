@@ -1,4 +1,10 @@
 {
+  "lib/bls-solidity": {
+    "tag": {
+      "name": "v0.3.0",
+      "rev": "9e10df92d631fab9c46f0ce9cd5c445f857bedcb"
+    }
+  },
   "lib/forge-std": {
     "tag": {
       "name": "v1.9.7",

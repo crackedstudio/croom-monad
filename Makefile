@@ -11,7 +11,7 @@ DEPLOYER_ADDRESS ?= 0xc50f1FbD1c36a2305B257376eb2264C3bB6179e8
 RPC              ?= monad_testnet
 export GIT_COMMIT = $(shell git rev-parse --short HEAD)
 
-.PHONY: build test lint check measure-pairing measure-precompiles measure-storage measure-fee-model whoami-deployer deploy-probe measure-pairing-tx
+.PHONY: build test lint check measure-pairing measure-precompiles measure-storage measure-fee-model verify-round sample-verify-gas whoami-deployer deploy-probe measure-pairing-tx
 
 build:  ; forge build --sizes
 test:   ; forge test
@@ -28,6 +28,22 @@ measure-precompiles:
 	@cast call --rpc-url $(RPC) --create \
 	  $$(forge inspect src/probe/PrecompileGasReport.sol:PrecompileGasReport bytecode) \
 	  | xargs cast decode-abi "f()(uint256[7])"
+
+# Verifies one real drand evmnet round on Monad and reports the cost of each stage.
+# Read-only: no key, no deployment, no funds.
+verify-round:
+	@test -n "$(ROUND)" || (echo "usage: make verify-round ROUND=20880831"; exit 1)
+	@SIG=$$(curl -sS "https://api.drand.sh/v2/chains/04f1e9062b8a81f848fded9c12306733282b2727ecced50032187751166ec8c3/rounds/$(ROUND)" \
+	  | python3 -c 'import sys,json;print(json.load(sys.stdin)["signature"])'); \
+	ARGS=$$(cast abi-encode "c(uint64,bytes)" $(ROUND) 0x$$SIG); \
+	CODE=$$(forge inspect src/probe/BeaconVerifyReport.sol:BeaconVerifyReport bytecode); \
+	echo "verified, gas_hash_to_point, gas_pairing, gas_total:"; \
+	cast call --rpc-url $(RPC) --create "$$CODE$${ARGS\#0x}" \
+	  | xargs cast decode-abi "f()(bool,uint256,uint256,uint256)"
+
+# Round-by-round spread of verification cost. The maximum is what sets a gas limit.
+sample-verify-gas:
+	./bin/sample-verify-gas.sh $(or $(COUNT),32) > bench/verify-gas.csv
 
 # Storage paging. Needs the deployed StoragePageProbe address; both calls are read-only.
 measure-storage:
