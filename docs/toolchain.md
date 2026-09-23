@@ -37,7 +37,7 @@ purpose; the invariant under test is *a dishonest poster loses*, not *no call ev
 ## Setup on a fresh machine
 
 ```bash
-curl -L https://foundry.paradigm.xyz | bash && foundryup --version 1.4.3
+curl -L https://foundry.paradigm.xyz | bash && foundryup --install v1.4.3
 git clone <repo> && cd croom-evm
 git submodule update --init --recursive
 cp .env.example .env   # then fill it in
