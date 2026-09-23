@@ -30,6 +30,11 @@ jobs:
       - name: format
         run: forge fmt --check
 
+      # `forge build` lints too (deny = "warnings"), but as its own step the
+      # failure says "lint" instead of "build", which is a different bug hunt.
+      - name: lint
+        run: forge lint
+
       # 128 KB contract / 256 KB init code on Monad. --sizes makes an overrun
       # visible on the commit that causes it, not on deploy day.
       - name: build
