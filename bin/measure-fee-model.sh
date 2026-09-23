@@ -58,14 +58,21 @@ TX=$(cast send "$PROBE" "checkPairing(bytes)" "$INPUT" \
       --account "$ACCOUNT" --from "$SENDER" --json | python3 -c 'import sys,json;print(json.load(sys.stdin)["transactionHash"])')
 AFTER=$(cast balance "$SENDER" --rpc-url "$RPC")
 
+# NOTE: on Monad `receipt.gasUsed` reports the BILLED gas, which equals the limit. Comparing the
+# balance delta against it is circular and always "proves" the gas_used model. The honest
+# reference for what the call actually executes is an independent estimate.
 USED=$(cast receipt "$TX" --rpc-url "$RPC" gasUsed)
+EXECUTED=$(cast estimate "$PROBE" "checkPairing(bytes)" "$INPUT" --rpc-url "$RPC" --from "$SENDER")
 PRICE=$(cast receipt "$TX" --rpc-url "$RPC" effectiveGasPrice)
 
-python3 - "$BEFORE" "$AFTER" "$USED" "$PRICE" "$LIMIT" "$TX" <<'PY'
+python3 - "$BEFORE" "$AFTER" "$EXECUTED" "$PRICE" "$LIMIT" "$TX" "$USED" <<'PY'
 import sys
-before, after, used, price, limit, tx = (int(x, 0) if i < 5 else x for i, x in enumerate(sys.argv[1:]))
+before, after, executed, price, limit, tx, billed = (
+    int(x, 0) if i != 5 else x for i, x in enumerate(sys.argv[1:]))
 spent = before - after
-by_used, by_limit = used * price, limit * price
+by_used, by_limit = executed * price, limit * price
+print(f"receipt gasUsed: {int(billed,0):,}  (the BILLED figure on Monad, not the executed one)")
+print(f"eth_estimateGas: {executed:,}  (what the call actually needs)")
 print(f"tx:            {tx}")
 print(f"gas used:      {used:,}")
 print(f"gas limit:     {limit:,}")
@@ -75,11 +82,10 @@ print(f"actually spent {spent/1e18:.18f} MON")
 print(f"gas_used  model{by_used/1e18:>22.18f} MON   (off by {abs(spent-by_used)/1e18:.18f})")
 print(f"gas_limit model{by_limit/1e18:>22.18f} MON   (off by {abs(spent-by_limit)/1e18:.18f})")
 print()
-if used == limit:
-    print("VERDICT: INCONCLUSIVE - gas_used equals gas_limit, so both models predict the same")
-    print("         debit. Either the call burned the limit, or the limit was set from the")
-    print("         estimate. Re-run with a larger limit against a call that cannot revert.")
+if executed >= limit:
+    print("VERDICT: INCONCLUSIVE - the call needs at least the limit, so the models coincide.")
+    print("         Re-run with a larger limit.")
 else:
     print(f"VERDICT: charged on {'GAS_LIMIT' if abs(spent-by_limit) < abs(spent-by_used) else 'GAS_USED'}")
-print(f"\n0x08 end-to-end, real transaction: {used:,} gas")
+    print(f"         padding cost {(by_limit-by_used)/1e18:.6f} MON on this transaction alone")
 PY

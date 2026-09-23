@@ -63,7 +63,9 @@ That is the arithmetic PLAN.md §2 rests on, and it now has a source.
 ## 3. Gas model
 
 **Transactions are charged on `gas_limit`, not `gas_used`: `value + gas_bid × gas_limit`.** Stated
-rationale is DoS prevention under asynchronous execution.
+rationale is DoS prevention under asynchronous execution. **Verified on testnet** — see
+`bench/fee-model.md`. A successful call needing 597,880 gas, sent with a 2,000,000 limit, was
+debited for all 2,000,000.
 
 Other differences from Ethereum:
 
@@ -179,7 +181,8 @@ is no correct reading of it at all.
 | `ecMul` = 30,000 (5× Ethereum) | Audit `bls-solidity`'s hash-to-G1 for scalar multiplications before assuming its Ethereum gas profile carries over | 2.2 |
 | `SLOAD` cold page = 8,100 | Page-contiguous hot state is worth ~8.1k per avoided page touch, not ~2.1k. This moves from a nicety to a first-order design constraint | 4.3 |
 | `SSTORE` state growth = 17,000 | Every checkpoint that grows storage pays it. Epoch sizing must amortize it across enough ticks | 5.1 |
-| Charged on `gas_limit` | A challenge that resolves cheaply still costs the full limit. Bonds sized against worst-case limit; bots never pad | 5.4, 6.5, 7.4 |
+| Charged on `gas_limit` ✅ **measured** — `bench/fee-model.md` | A challenge that resolves cheaply still costs the full limit. Bonds sized against worst-case limit; bots never pad | 5.4, 6.5, 7.4 |
+| `receipt.gasUsed` reports the **billed** gas, not the executed gas | Execution cost cannot be profiled from receipts. Every measurement uses `eth_call` probes or `eth_estimateGas`; bots log the estimate and limit at send time | 5.4, 7.2 |
 | `eth_getLogs` capped at 100–1,000 blocks | At 300 ms blocks, 100 blocks is **30 seconds** of history per call. A single day of backfill is 288,000 blocks — 2,880 calls at the QuickNode cap. Use the 1,000-block endpoint for backfill and page deliberately | 10.1 |
 | `latest` is speculative | The indexer reads `finalized` only. A reorged tick in a chart is a broken conformance claim | 10.1 |
 | Fusaka fork | Cancun opcodes (`TSTORE`/`TLOAD`/`MCOPY`) are available. solc 0.8.28 tops out at `cancun`, so that is the correct pin | 0.4 |
