@@ -12,6 +12,16 @@ exists, and anyone can recompute the entire history from public data with no RPC
 
 Built for the Monad Metropolis hackathon, Track 01 — Onchain Finance & Trading.
 
+## Setup
+
+Requires Foundry `1.4.3` and Node `20.13.1` — both pinned, see [docs/toolchain.md](docs/toolchain.md).
+
+```bash
+git submodule update --init --recursive
+cp .env.example .env    # fill in; no private keys go here — see docs/keys.md
+forge build && forge test
+```
+
 ## Status
 
 Pre-build. See [docs/PHASES.md](docs/PHASES.md) for the execution breakdown and
