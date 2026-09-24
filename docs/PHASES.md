@@ -95,7 +95,8 @@ will not be on day 10.
 
 | # | Step | Done when | Commit |
 | --- | --- | --- | --- |
-| 3.1 | **Blocker, resolve before starting:** import the canonical derivation spec and the reference vector set from the existing Croom implementation into `spec/`. Pin the source revision | `spec/` holds the authority this phase is measured against | `docs(tick): import canonical derivation spec and vector set` |
+| 3.1 | ~~Import the canonical spec~~ — **there was none; written from scratch instead**, 24 Sep | `spec/` holds the authority this phase is measured against | `docs(tick): write the canonical derivation spec from scratch` ✅ |
+| 3.1b | Reference implementation of `spec/` in TypeScript, plus the vector generator built on it | Vectors regenerate deterministically; `vol == 0` Rooms reproduce exactly | `feat(tick): reference implementation and vector generator` |
 | 3.2 | `FixedPointMath`: `mul`, `div`, `sqrt`, `exp`, `ln` on `int256` at 1e18, truncating toward zero — inherited from Solidity's `/`, never from a rounding helper | Property tests assert truncation on both signs of zero-crossing | `feat(tick): fixed-point library with truncating semantics` |
 | 3.3 | Differential fuzz: `FixedPointMath` vs the reference implementation over the full input domain, including the extremes where `exp`/`ln` saturate | Fuzz runs clean at high `runs` | `test(tick): fixed-point differential fuzz against reference` |
 | 3.4 | `Tick.sol` — the pure map `(spec, round, beacon output) → next price`. Keccak only, no storage, no floating point. **One commit per price model** | Each model matches its vectors | `feat(tick): <model> price model` ×N |
@@ -233,8 +234,8 @@ infrastructure. The chart anyone can recompute is the stronger demo.
 
 | # | Question | Blocks | Needed by |
 | --- | --- | --- | --- |
-| Q1 | **Still open, now blocking two things.** Where is the canonical derivation spec and the reference vector set? Phase 3 has no authority to be bit-exact against, and `docs/decisions/0001-entropy.md` §2 cannot name the beacon output the derivation consumes. | Phase 3 entirely; the last open item in 2.3 | **Now** |
-| Q2 | Which price models ship? 3.4 is one commit per model, so the count sets the day 3–5 budget | 3.4, 4.4 | Day 3 |
+| Q1 | ✅ **Closed 24 Sep — there was no prior spec, so it was written from scratch.** `spec/` is now the authority. Beacon output is `sha256(signature)`. | — | done |
+| Q2 | ✅ **Closed — three models**: GBM-lite, mean-reverting, jump (`spec/02-derivation.md`). None uses `exp` or `ln`. Three commits in 3.4. | — | done |
 | Q3 | Privy or Dynamic? | 9.1 | Day 17 |
 | Q4 | Bond size, rake %, epoch length, challenge-window length in rounds | 5.2, 6.5, 8.4 | Day 8 |
 | Q5 | Where do the poster and challenger bots run for the multi-hour and demo-day windows? | 5.5 | Day 10 |
