@@ -19,29 +19,29 @@ not data. Anyone can recompute the beacon history from the public API without as
 including rounds far below the floor, so verification is a `view` function with no storage effect.
 Advancing the floor is the separate, state-changing call.
 
-## 2. What counts as "the beacon output" — **BLOCKED**
+## 2. Beacon output — ✅ **resolved 24 Sep, and we had already guessed right**
 
-The answer is "whatever the existing Croom spec says", and the spec is not in this repository.
-This is open question **Q1** in `docs/PHASES.md`, and it blocks Phase 3 outright.
+`R_r = SHA-256(σ_r)` — the SHA-256 of the 64-byte signature. Confirmed by
+`reference/croom-core/docs/core-v1.md` §2 and by protocol spec v1.1 §5.1.
 
-It does **not** block step 2.3, provided the choice stays isolated. `Entropy` therefore:
+This was recorded as blocked because the specification was believed not to exist. It does:
+`reference/croom-core` is a complete Rust implementation with a bit-exact normative document and
+frozen vectors. `Entropy` needs no change — the value it was already going to return is the right
+one.
 
-- verifies the signature and returns the **verified 64-byte signature point**, which is the raw fact,
-- and exposes `randomness()` as `sha256(signature)`, drand's own canonical definition and the one `EvmnetRegistry` uses.
-
-Whichever the spec names, the derivation layer binds to it at a single boundary, and no part of
-`Entropy` has to change. Until the spec is in hand, **nothing downstream may assume which one is
-canonical** — and the moment it arrives, a conformance test pins it.
+Note the asymmetry worth remembering: **`R_r` is SHA-256, everything downstream is Keccak.** The one
+place the other hash function appears.
 
 ## 3. We run the floor bot, unrewarded
 
 No treasury, no payout path, no rake plumbing inside `Entropy`. A bot we fund keeps the floor fresh
 through the demo and the judging window, at ~0.065 MON per advance.
 
-This is a **stated limitation, not an oversight**: in production, floor advancement needs a real
-incentive, and the writeup says so plainly rather than implying the problem is solved. The
-alternative — funding the prover from the market rake — would have grown `Entropy` a treasury and a
-payout surface during week 2, which is where the schedule has no slack.
+This is a **scope decision, not a protocol limitation** — a distinction that matters now that the
+protocol document is in hand. Spec v1.1 §9.1 already funds this: 10% of rake goes to
+"settler / poster / challenger rewards". The incentive exists in the design; we are declining to
+build the fee router inside a 20-day window, which is a different statement from "the problem is
+unsolved", and the writeup should make exactly that distinction.
 
 Rejected also: making the user who closes market entry pay for the proof. Correct economically,
 miserable in a demo, and it puts a 620,772-gas cost on an ordinary action.
