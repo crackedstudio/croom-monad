@@ -91,21 +91,40 @@ will not be on day 10.
 
 ---
 
-## Phase 3 — Fixed point and tick derivation · Days 3–5
+## Phase 3 — Port the derivation · Days 3–5
+
+> **This phase changed shape on 24 Sep.** It was written as "design and implement a derivation".
+> It is not: `reference/croom-core` is a complete, gated Rust implementation with a bit-exact
+> normative spec (`docs/core-v1.md`) and **100,000 rounds of frozen conformance vectors**. Phase 3
+> is a **port**, measured against an artefact that already exists.
+>
+> Three families ship on EVM: **Drift (0)**, **Step (1)**, **Spike (4)**. The reference implements
+> all eight; the registry here accepts only these three and says so. A Room opened upstream with
+> another family simply is not openable on Monad, which is honest and costs nothing.
+>
+> Porting hazards are collected in [`docs/porting-notes.md`](porting-notes.md) — `i128` bounds,
+> floor-versus-truncate, literal association order, sorted Merkle pairs.
 
 | # | Step | Done when | Commit |
 | --- | --- | --- | --- |
-| 3.1 | ~~Import the canonical spec~~ — **there was none; written from scratch instead**, 24 Sep | `spec/` holds the authority this phase is measured against | `docs(tick): write the canonical derivation spec from scratch` ✅ |
-| 3.1b | Reference implementation of `spec/` in TypeScript, plus the vector generator built on it | Vectors regenerate deterministically; `vol == 0` Rooms reproduce exactly | `feat(tick): reference implementation and vector generator` |
-| 3.2 | `FixedPointMath`: `mul`, `div`, `sqrt`, `exp`, `ln` on `int256` at 1e18, truncating toward zero — inherited from Solidity's `/`, never from a rounding helper | Property tests assert truncation on both signs of zero-crossing | `feat(tick): fixed-point library with truncating semantics` |
-| 3.3 | Differential fuzz: `FixedPointMath` vs the reference implementation over the full input domain, including the extremes where `exp`/`ln` saturate | Fuzz runs clean at high `runs` | `test(tick): fixed-point differential fuzz against reference` |
-| 3.4 | `Tick.sol` — the pure map `(spec, round, beacon output) → next price`. Keccak only, no storage, no floating point. **One commit per price model** | Each model matches its vectors | `feat(tick): <model> price model` ×N |
-| 3.5 | Packed-hex fixture generator (TS): ~2,000 rounds sampled across every model and every edge case | Fixture regenerates deterministically from `spec/` | `test(tick): packed conformance fixture and generator` |
-| 3.6 | Foundry conformance test reading the packed fixture | **GATE 2a — sampled vectors pass bit-for-bit, suite runs in under 5s** | `test(tick): sampled conformance suite passes bit-exact` |
-| 3.7 | TypeScript derivation for the frontend, written from `spec/` — not ported from the Solidity | TS is an independent implementation, not a translation | `feat(web): typescript derivation from spec` |
-| 3.8 | Differential harness TS ↔ Solidity over every vector | Disagreement fails CI and is treated as a spec bug | `test(tick): typescript/solidity differential harness` |
+| 3.1 | Pin `reference/croom-core` as a submodule; point `spec/` at it | The authority is upstream and versioned | `docs(tick): replace the hand-written spec with the pinned reference implementation` ✅ |
+| 3.2 | `bin/pack-vectors.py` — convert `vectors/*.json` to packed fixtures for the fast path | Round-trips; the frozen JSON is never modified | `test(tick): packed fixtures converted from the frozen vectors` |
+| 3.3 | `FixedPointMath`: `mul_div`, `mul_wad`, `div_wad`, `div_int`, `isqrt`, `sqrt_wad`, `floorDiv`, and `i128` bounds on every result | `maths.json` cases pass bit-for-bit | `feat(tick): fixed-point core with i128 bounds` |
+| 3.4 | `exp_wad` and `ln_wad` — 20 terms, the `⌊ ⌋` on `k`, the negative-`k` branch | `maths.json` exp/ln cases pass | `feat(tick): exp_wad and ln_wad` |
+| 3.5 | `inv_phi_wad` — Wichura AS241, three branches, the Appendix A coefficient table | `maths.json` Φ⁻¹ cases pass | `feat(tick): inverse normal CDF (AS241)` |
+| 3.6 | Spec encoding and `roomId`; state encoding and `stateHash` | Every vector's `roomId` and initial `stateHash` reproduce | `feat(tick): spec encoding and room identity` |
+| 3.7 | Derived constants — `dt`, `sdt`, `σ_t`, `var_half`, and the per-family constants | Match the reference for all ten vector Rooms | `feat(tick): derived constants` |
+| 3.8 | Randomness: `u(R, roomId, j, stream)`, `uniform_wad` | Draws match for every sampled round | `feat(tick): randomness expansion` |
+| 3.9 | **Drift** family | `drift.json` passes bit-for-bit | `feat(tick): drift price model` |
+| 3.10 | **Step** family | `step.json` passes | `feat(tick): step price model` |
+| 3.11 | **Spike** family | `spike_up`, `spike_down`, `spike_down_wide` pass | `feat(tick): spike price model` |
+| 3.12 | Merkle — double-hashed leaves, sorted pairs, odd carry, empty root | Roots and proofs match the vectors | `feat(tick): merkle commitment` |
+| 3.13 | Fast conformance suite over the packed fixtures | **GATE 2a — three families bit-exact against the frozen vectors, suite under 5s** | `test(tick): conformance suite passes bit-exact` |
 
----
+**No TypeScript derivation is needed.** The reference ships an SDK that already reproduces every
+vector bit-for-bit, so the frontend consumes it and the old step "write a TS derivation" is deleted.
+The differential test is now genuinely three-way — Rust, TypeScript and Solidity against one frozen
+artefact, none of them written to match the others.
 
 ## Phase 4 — Registry · Days 6–7 · **GATE 2**
 
@@ -234,8 +253,8 @@ infrastructure. The chart anyone can recompute is the stronger demo.
 
 | # | Question | Blocks | Needed by |
 | --- | --- | --- | --- |
-| Q1 | ✅ **Closed 24 Sep — there was no prior spec, so it was written from scratch.** `spec/` is now the authority. Beacon output is `sha256(signature)`. | — | done |
-| Q2 | ✅ **Closed — three models**: GBM-lite, mean-reverting, jump (`spec/02-derivation.md`). None uses `exp` or `ln`. Three commits in 3.4. | — | done |
+| Q1 | ✅ **Closed 24 Sep — the spec and a full Rust implementation exist**: `reference/croom-core`, pinned at `c1e5b4c`, with `docs/core-v1.md` normative to the bit and 100,000 rounds of frozen vectors. The hand-written spec was deleted. | — | done |
+| Q2 | ✅ **Closed — three of the reference's eight families**: Drift (0), Step (1), Spike (4). All three need exact `exp`/`ln`; Drift and Spike need AS241. | — | done |
 | Q3 | Privy or Dynamic? | 9.1 | Day 17 |
 | Q4 | Bond size, rake %, epoch length, challenge-window length in rounds | 5.2, 6.5, 8.4 | Day 8 |
 | Q5 | Where do the poster and challenger bots run for the multi-hour and demo-day windows? | 5.5 | Day 10 |
