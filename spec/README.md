@@ -1,37 +1,33 @@
-# spec — the canonical derivation specification
+# spec — pointer, not a specification
 
-**This is the authority.** `Tick.sol` and the TypeScript derivation are both measured against these
-documents, and where an implementation disagrees with them, the implementation is wrong.
+**The specification lives in the reference implementation, not here.**
 
-| | |
+| Document | Where |
 | --- | --- |
-| [`00-arithmetic.md`](00-arithmetic.md) | fixed point, truncation toward zero, association order |
-| [`01-room.md`](01-room.md) | the Room spec, its encoding, `roomId`, and creation-time validation |
-| [`02-derivation.md`](02-derivation.md) | beacon output, entropy stream, the three price models, commitments |
-| [`03-conformance.md`](03-conformance.md) | vector formats and required coverage |
+| Protocol specification v1.1 | [`reference/croom-core/docs/05-croom-protocol-v1.1.md`](../reference/croom-core/docs/05-croom-protocol-v1.1.md) |
+| **Croom core v1 — normative, bit-exact definition** | [`reference/croom-core/docs/core-v1.md`](../reference/croom-core/docs/core-v1.md) |
+| Rust reference implementation | [`reference/croom-core/crates/croom-core/`](../reference/croom-core/crates/croom-core/) |
+| **Frozen conformance vectors** | [`reference/croom-core/vectors/`](../reference/croom-core/vectors/) |
 
-## Status
+`reference/croom-core` is a submodule pinned at `c1e5b4c`.
 
-**Draft, written 2026-09-24.** Written from scratch for this build — there was no prior
-specification to import, and no prior implementation to differential-test against.
+## The order of authority
 
-Amending any of these documents means **regenerating every conformance vector**. That is deliberate
-friction: the spec should be hard to change once vectors exist, because a silent change to the spec
-is a silent change to every Room ever opened.
+1. **The vectors.** `vectors/` is a frozen public interface. Where `core-v1.md` and the vectors disagree, the vectors win — the document says so itself.
+2. **`core-v1.md`**, which pins every operation to the bit: `exp_wad`, `ln_wad`, `inv_phi_wad` (Wichura AS241 with its coefficient table), the randomness expansion, the spec encoding, the Merkle construction.
+3. **Protocol spec v1.1**, which defines what the system is for.
 
-## The invariant the whole thing rests on
+Our Solidity is measured against (1). It is a **port**, not a design.
 
-> `abs(drift) + vol + modelExtra < ONE`
+## What happened to the spec that used to be here
 
-Enforced at Room creation (V7, §2.4). It guarantees every model's per-tick multiplier lies strictly
-inside `(0, 2)`, which in turn means no price can reach zero, change sign, or double in a tick. With
-it, the tick function is total for every Room the registry will accept, and the clamps are a safety
-net rather than part of the model. Without it, every model needs its own case analysis for
-degenerate inputs.
+On 24 September this directory briefly held a derivation spec written from scratch, on the
+understanding that none existed. One does. The hand-written version diverged from it in the
+randomness expansion, the price models, the draw distribution and the volatility
+parameterisation, and it had no martingale calibration. It was deleted rather than reconciled,
+because there is exactly one authority and it is upstream.
 
-## Reading order for an implementer
+Two things from that detour were worth keeping and have moved:
 
-`00` then `02`. `01` matters when you are building `Registry`, and `03` when you are generating or
-consuming vectors. If you read only one section, read [§1.2 and §1.3](00-arithmetic.md) — truncation
-direction and association order are where bit-exactness is won or lost, and neither is visible in a
-test that only uses positive numbers.
+- The truncation and association-order rules, now in [`docs/porting-notes.md`](../docs/porting-notes.md) alongside the Solidity-specific hazards.
+- The packed-fixture idea, now a *converter* (`bin/pack-vectors.py`) rather than a competing format. The JSON vectors are 3 MB each and Foundry parses JSON slowly enough to discourage running the suite; packing them for the fast path changes nothing about the frozen artefact.

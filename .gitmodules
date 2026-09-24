@@ -4,3 +4,6 @@
 [submodule "lib/bls-solidity"]
 	path = lib/bls-solidity
 	url = https://github.com/randa-mu/bls-solidity
+[submodule "reference/croom-core"]
+	path = reference/croom-core
+	url = https://github.com/crackedstudio/croom-core
