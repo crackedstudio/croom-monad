@@ -233,7 +233,7 @@ infrastructure. The chart anyone can recompute is the stronger demo.
 
 | # | Question | Blocks | Needed by |
 | --- | --- | --- | --- |
-| Q1 | Where is the canonical derivation spec and the reference vector set? Is there an existing Croom implementation to import from and differential-test against? | Phase 3 entirely | Day 3 |
+| Q1 | **Still open, now blocking two things.** Where is the canonical derivation spec and the reference vector set? Phase 3 has no authority to be bit-exact against, and `docs/decisions/0001-entropy.md` §2 cannot name the beacon output the derivation consumes. | Phase 3 entirely; the last open item in 2.3 | **Now** |
 | Q2 | Which price models ship? 3.4 is one commit per model, so the count sets the day 3–5 budget | 3.4, 4.4 | Day 3 |
 | Q3 | Privy or Dynamic? | 9.1 | Day 17 |
 | Q4 | Bond size, rake %, epoch length, challenge-window length in rounds | 5.2, 6.5, 8.4 | Day 8 |
