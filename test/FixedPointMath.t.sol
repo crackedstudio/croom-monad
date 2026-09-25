@@ -64,6 +64,34 @@ contract FixedPointMathTest is VectorReader {
         }
     }
 
+    function test_ExpWadVectors() public view {
+        Vectors memory v = _load("exp_wad");
+
+        for (uint256 i = 0; i < v.count; i++) {
+            uint8 want = _status(v, i);
+            try harness.expWad(_input(v, i, 0)) returns (int256 got) {
+                assertEq(want, OK, _case("exp_wad", i, "expected an error, got a value"));
+                assertEq(got, _expected(v, i), _case("exp_wad", i, "wrong value"));
+            } catch (bytes memory err) {
+                assertEq(_statusOf(err), want, _case("exp_wad", i, "wrong error variant"));
+            }
+        }
+    }
+
+    function test_LnWadVectors() public view {
+        Vectors memory v = _load("ln_wad");
+
+        for (uint256 i = 0; i < v.count; i++) {
+            uint8 want = _status(v, i);
+            try harness.lnWad(_input(v, i, 0)) returns (int256 got) {
+                assertEq(want, OK, _case("ln_wad", i, "expected an error, got a value"));
+                assertEq(got, _expected(v, i), _case("ln_wad", i, "wrong value"));
+            } catch (bytes memory err) {
+                assertEq(_statusOf(err), want, _case("ln_wad", i, "wrong error variant"));
+            }
+        }
+    }
+
     /// @dev `expWad` floors `k = ⌊x / LN2_WAD⌋` and `k` is negative for every negative input, so
     /// this helper is on the path for half of all exponentials. Solidity's `/` truncates, and the
     /// two disagree exactly when the operands' signs differ and the division is inexact.

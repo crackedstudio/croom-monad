@@ -21,6 +21,18 @@ contract MathHarness {
         return FixedPointMath.sqrtWad(x);
     }
 
+    function expWad(
+        int256 x
+    ) external pure returns (int256) {
+        return FixedPointMath.expWad(x);
+    }
+
+    function lnWad(
+        int256 x
+    ) external pure returns (int256) {
+        return FixedPointMath.lnWad(x);
+    }
+
     function u64ToWad(
         uint256 u
     ) external pure returns (int256) {

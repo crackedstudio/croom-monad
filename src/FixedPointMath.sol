@@ -32,6 +32,13 @@ library FixedPointMath {
     /// @dev ln(10^-18) truncated. Below this, `expWad` is exactly zero.
     int256 internal constant EXP_MIN_INPUT = -41_446_531_673_892_822_312;
 
+    /// @dev Taylor terms for `expWad` on the reduced argument. The loop runs `n = 1..=20`.
+    int256 internal constant EXP_TERMS = 20;
+    /// @dev Series terms for `lnWad`. `term_0 = y` is taken before the loop, which then runs
+    /// `i = 1..19` — nineteen iterations, twenty terms. The reference's `1..LN_TERMS` is a Rust
+    /// half-open range, and reading it as twenty iterations changes the last digit.
+    int256 internal constant LN_TERMS = 20;
+
     int256 internal constant INT128_MAX = type(int128).max;
     int256 internal constant INT128_MIN = type(int128).min;
 
@@ -153,6 +160,92 @@ library FixedPointMath {
         // casting is safe because u is at most 2^64-1, so scaled < WAD.
         // forge-lint: disable-next-line(unsafe-typecast)
         return scaled == 0 ? int256(1) : int256(scaled);
+    }
+
+    /// @notice `⌊x / 2^k⌋`.
+    /// @dev Solidity's `>>` on a signed value is an arithmetic shift, which already floors for
+    /// negatives. The `k >= 127` case is carried over from the reference so a shift past the
+    /// width collapses to the sign rather than being undefined.
+    function shrFloor(
+        int256 x,
+        uint256 k
+    ) internal pure returns (int256) {
+        if (k >= 127) return x < 0 ? int256(-1) : int256(0);
+        return x >> k;
+    }
+
+    /// @notice e^x in WAD.
+    /// @dev Argument reduction `x = k·ln2 + r` with `k` **floored**, a 20-term Taylor series on
+    /// `r ∈ [0, ln2)`, then a shift by `k`. The floor is the part Solidity does not give for free:
+    /// `k` is negative for every `x < 0`, and truncating there lands on the wrong power of two —
+    /// an answer wrong by a factor of two, for half of all inputs.
+    function expWad(
+        int256 x
+    ) internal pure returns (int256) {
+        if (x < EXP_MIN_INPUT) return 0;
+        if (x > EXP_MAX_INPUT) revert Overflow();
+
+        int256 k = floorDiv(x, LN2_WAD);
+        int256 r = x - k * LN2_WAD;
+
+        int256 sum = WAD;
+        int256 term = WAD;
+        for (int256 n = 1; n <= EXP_TERMS; n++) {
+            term = divInt(mulWad(term, r), n);
+            sum += term;
+        }
+
+        if (k >= 0) {
+            // Checked rather than reasoned about, exactly as the reference does: the shift must
+            // not reach the sign bit of an i128.
+            // casting is safe because this branch has k >= 0 and the guard rejects k >= 127,
+            // so both 127 - k and k are in [0, 127].
+            // forge-lint: disable-next-line(unsafe-typecast)
+            if (k >= 127 || (sum >> uint256(127 - k)) != 0) revert Overflow();
+            // forge-lint: disable-next-line(unsafe-typecast)
+            return sum << uint256(k);
+        }
+        // casting is safe because this branch has k < 0, so -k is positive.
+        // forge-lint: disable-next-line(unsafe-typecast)
+        return shrFloor(sum, uint256(-k));
+    }
+
+    /// @notice ln x in WAD. Requires `x > 0`.
+    /// @dev Reduce `x = m · 2^k` with `WAD <= m < 2·WAD`, run the series on
+    /// `y = (m − WAD)/(m + WAD)`, then add `k·ln2`. Equal bit length does not by itself put `m`
+    /// in range — `2^59` has WAD's bit length but is smaller — so the reduction carries an
+    /// explicit correction step.
+    function lnWad(
+        int256 x
+    ) internal pure returns (int256) {
+        if (x <= 0) revert Domain();
+
+        // bitLength(WAD) is 60.
+        // casting x is safe because x > 0 was just checked; casting the bit length is safe
+        // because it is at most 256.
+        // forge-lint: disable-next-line(unsafe-typecast)
+        int256 k = int256(bitLength(uint256(x))) - 60;
+        // casting is safe because each branch tests the sign of k first.
+        // forge-lint: disable-next-line(unsafe-typecast)
+        int256 m = k >= 0 ? shrFloor(x, uint256(k)) : x << uint256(-k);
+
+        if (m < WAD) {
+            m <<= 1;
+            k -= 1;
+        } else if (m >= 2 * WAD) {
+            m = shrFloor(m, 1);
+            k += 1;
+        }
+
+        int256 y = divWad(m - WAD, m + WAD);
+        int256 y2 = mulWad(y, y);
+        int256 term = y;
+        int256 sum = y;
+        for (int256 i = 1; i < LN_TERMS; i++) {
+            term = mulWad(term, y2);
+            sum += divInt(term, 2 * i + 1);
+        }
+        return k * LN2_WAD + 2 * sum;
     }
 
     function abs(
