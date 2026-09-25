@@ -92,6 +92,23 @@ contract FixedPointMathTest is VectorReader {
         }
     }
 
+    /// @dev The tails are the point. A mistyped coefficient leaves the central region looking
+    /// perfectly reasonable and corrupts only the extremes — which is where a price model spends
+    /// its interesting moments, and where a market would notice first.
+    function test_InvPhiWadVectors() public view {
+        Vectors memory v = _load("inv_phi_wad");
+
+        for (uint256 i = 0; i < v.count; i++) {
+            uint8 want = _status(v, i);
+            try harness.invPhiWad(_input(v, i, 0)) returns (int256 got) {
+                assertEq(want, OK, _case("inv_phi_wad", i, "expected an error, got a value"));
+                assertEq(got, _expected(v, i), _case("inv_phi_wad", i, "wrong value"));
+            } catch (bytes memory err) {
+                assertEq(_statusOf(err), want, _case("inv_phi_wad", i, "wrong error variant"));
+            }
+        }
+    }
+
     /// @dev `expWad` floors `k = ⌊x / LN2_WAD⌋` and `k` is negative for every negative input, so
     /// this helper is on the path for half of all exponentials. Solidity's `/` truncates, and the
     /// two disagree exactly when the operands' signs differ and the division is inexact.

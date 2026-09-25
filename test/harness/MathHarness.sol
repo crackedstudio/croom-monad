@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import {FixedPointMath} from "../../src/FixedPointMath.sol";
+import {InverseNormal} from "../../src/InverseNormal.sol";
 
 /// @notice External wrappers so the conformance suite can observe reverts. A library call that
 /// reverts inside the test would abort the test; through an external call it is a value the
@@ -31,6 +32,12 @@ contract MathHarness {
         int256 x
     ) external pure returns (int256) {
         return FixedPointMath.lnWad(x);
+    }
+
+    function invPhiWad(
+        int256 p
+    ) external pure returns (int256) {
+        return InverseNormal.invPhiWad(p);
     }
 
     function u64ToWad(
