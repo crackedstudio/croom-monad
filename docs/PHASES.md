@@ -108,9 +108,9 @@ will not be on day 10.
 | # | Step | Done when | Commit |
 | --- | --- | --- | --- |
 | 3.1 | Pin `reference/croom-core` as a submodule; point `spec/` at it | The authority is upstream and versioned | `docs(tick): replace the hand-written spec with the pinned reference implementation` ✅ |
-| 3.2 | `bin/pack-vectors.py` — convert `vectors/*.json` to packed fixtures for the fast path | Round-trips; the frozen JSON is never modified | `test(tick): packed fixtures converted from the frozen vectors` |
-| 3.3 | `FixedPointMath`: `mul_div`, `mul_wad`, `div_wad`, `div_int`, `isqrt`, `sqrt_wad`, `floorDiv`, and `i128` bounds on every result | `maths.json` cases pass bit-for-bit | `feat(tick): fixed-point core with i128 bounds` |
-| 3.4 | `exp_wad` and `ln_wad` — 20 terms, the `⌊ ⌋` on `k`, the negative-`k` branch | `maths.json` exp/ln cases pass | `feat(tick): exp_wad and ln_wad` |
+| 3.2 | `bin/pack-vectors.py` — convert `vectors/*.json` to packed fixtures for the fast path | Round-trips; the frozen JSON is never modified | `test(tick): packed fixtures converted from the frozen vectors` ✅ |
+| 3.3 | `FixedPointMath`: `mul_div`, `mul_wad`, `div_wad`, `div_int`, `isqrt`, `sqrt_wad`, `floorDiv`, and `i128` bounds on every result | `maths.json` cases pass bit-for-bit | `feat(tick): fixed-point core with i128 bounds` ✅ |
+| 3.4 | `exp_wad` and `ln_wad` — 20 terms, the `⌊ ⌋` on `k`, the negative-`k` branch | `maths.json` exp/ln cases pass | `feat(tick): exp_wad and ln_wad` ✅ |
 | 3.5 | `inv_phi_wad` — Wichura AS241, three branches, the Appendix A coefficient table | `maths.json` Φ⁻¹ cases pass | `feat(tick): inverse normal CDF (AS241)` |
 | 3.6 | Spec encoding and `roomId`; state encoding and `stateHash` | Every vector's `roomId` and initial `stateHash` reproduce | `feat(tick): spec encoding and room identity` |
 | 3.7 | Derived constants — `dt`, `sdt`, `σ_t`, `var_half`, and the per-family constants | Match the reference for all ten vector Rooms | `feat(tick): derived constants` |
