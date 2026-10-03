@@ -1,0 +1,18 @@
+{
+  "roomId": "0xddbdc54d3ed23f2ebb9c08e6ff8aa070ff970892f0e2072fa826631f5605829b",
+  "encoded": "0x010100020000006400000000000f4240000000000000003635c9adc5dea000000201010000000000000000016345785d8a0000",
+  "family": "step",
+  "beacon": 0,
+  "subTicks": 2,
+  "epochRounds": 100,
+  "genesisRound": "1000000",
+  "initialPrice": "1000000000000000000000",
+  "decimals": 2,
+  "mathVersion": 1,
+  "hashFn": 1,
+  "param": "100000000000000000",
+  "initialStateHash": "0x7d7781cfde7b11d0007490a3b2499c88dd62e82e108d9c219e8b92bdb481da5f",
+  "initialLo": "0",
+  "initialHi": "0",
+  "initialLevel": 0
+}

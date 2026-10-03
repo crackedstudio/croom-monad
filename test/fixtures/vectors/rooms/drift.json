@@ -1,0 +1,18 @@
+{
+  "roomId": "0x80b07f97230768404588c7aacb255e248ad37650212265b1f9c2beab0446c571",
+  "encoded": "0x010000010000006400000000000f4240000000000000003635c9adc5dea0000002010100000000000000000a688906bd8b0000",
+  "family": "drift",
+  "beacon": 0,
+  "subTicks": 1,
+  "epochRounds": 100,
+  "genesisRound": "1000000",
+  "initialPrice": "1000000000000000000000",
+  "decimals": 2,
+  "mathVersion": 1,
+  "hashFn": 1,
+  "param": "750000000000000000",
+  "initialStateHash": "0xbda809ac2e2bf878d82cfd5b4b776c0bdfd02f43b30454f5e6c267e0afba0ba3",
+  "initialLo": "0",
+  "initialHi": "0",
+  "initialLevel": 0
+}
