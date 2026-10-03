@@ -15,7 +15,7 @@ DEPLOYER_ADDRESS ?= 0xc50f1FbD1c36a2305B257376eb2264C3bB6179e8
 RPC              ?= monad_testnet
 export GIT_COMMIT = $(shell git rev-parse --short HEAD)
 
-.PHONY: build test lint check measure-pairing measure-precompiles measure-storage measure-fee-model verify-round sample-verify-gas deploy-entropy prove-round whoami-deployer deploy-probe measure-pairing-tx
+.PHONY: build test lint check measure-pairing measure-precompiles measure-storage measure-fee-model verify-round sample-verify-gas deploy-entropy prove-round deploy-registry open-rooms whoami-deployer deploy-probe measure-pairing-tx
 
 build:  ; forge build --sizes
 test:   ; forge test
@@ -95,6 +95,27 @@ prove-round:
 	  --gas-limit $(PROVE_GAS) --rpc-url $(RPC) \
 	  --account $(DEPLOYER_ACCOUNT) --from $(DEPLOYER_ADDRESS)
 	@echo "proven floor is now: $$(cast call $(ENTROPY) 'provenFloor()(uint64)' --rpc-url $(RPC))"
+
+deploy-registry:
+	@test -n "$(ENTROPY)" || (echo "usage: make deploy-registry ENTROPY=0x..."; exit 1)
+	ENTROPY=$(ENTROPY) forge script script/DeployRegistry.s.sol --rpc-url $(RPC) \
+	  --account $(DEPLOYER_ACCOUNT) --sender $(DEPLOYER_ADDRESS) --broadcast
+	$(PYTHON) bin/record-deployment.py broadcast/DeployRegistry.s.sol/$(CHAIN_ID)/run-latest.json
+
+# GATE 2: opens 50 Rooms across both families and the whole permitted parameter range.
+#
+# A uniform estimate multiplier is appropriate here, unlike the deploy-then-prove case: all 50
+# transactions are the same shape, so one factor covers them all, and padding an ~80k call is
+# cheap. The shortfall being corrected is storage and account-access repricing — openRoom reads
+# Entropy's floor across a contract boundary (10,100 on Monad against 2,600 on Ethereum) and
+# writes a fresh slot (27,900 against 22,100) — not precompiles. See bench/gas-estimation.md.
+ROOMS_GAS_MULTIPLIER ?= 180
+
+open-rooms:
+	@test -n "$(REGISTRY)" || (echo "usage: make open-rooms REGISTRY=0x..."; exit 1)
+	REGISTRY=$(REGISTRY) forge script script/OpenRooms.s.sol --rpc-url $(RPC) \
+	  --account $(DEPLOYER_ACCOUNT) --sender $(DEPLOYER_ADDRESS) \
+	  --gas-estimate-multiplier $(ROOMS_GAS_MULTIPLIER) --broadcast
 
 # Confirms the keystore holds the funded address. Prompts for the password and prints an
 # address; it signs nothing and sends nothing.
