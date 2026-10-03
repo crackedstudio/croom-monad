@@ -32,6 +32,25 @@ contract RoomSpecTest is Test {
         s.param = vm.parseInt(vm.parseJsonString(json, ".param"));
     }
 
+    /// @dev Memory structs are reference types in Solidity: `Spec memory b = a` copies the
+    /// *pointer*, so mutating `b` mutates `a`. A test that tweaks a "copy" and compares against
+    /// the original therefore compares the mutated struct with itself — and passes, which is worse
+    /// than failing. Everything below copies fields explicitly.
+    function _copy(
+        RoomSpec.Spec memory s
+    ) internal pure returns (RoomSpec.Spec memory c) {
+        c.family = s.family;
+        c.beacon = s.beacon;
+        c.subTicks = s.subTicks;
+        c.epochRounds = s.epochRounds;
+        c.genesisRound = s.genesisRound;
+        c.initialPrice = s.initialPrice;
+        c.decimals = s.decimals;
+        c.mathVersion = s.mathVersion;
+        c.hashFn = s.hashFn;
+        c.param = s.param;
+    }
+
     function _familyOf(
         string memory name
     ) internal pure returns (uint8) {
@@ -79,33 +98,33 @@ contract RoomSpecTest is Test {
         RoomSpec.Spec memory base = _spec("drift");
         bytes32 id = RoomSpec.roomId(base);
 
-        RoomSpec.Spec memory m = base;
+        RoomSpec.Spec memory m = _copy(base);
         m.subTicks = base.subTicks + 1;
         assertTrue(RoomSpec.roomId(m) != id, "subTicks");
 
-        m = base;
+        m = _copy(base);
         m.epochRounds = base.epochRounds + 1;
         assertTrue(RoomSpec.roomId(m) != id, "epochRounds");
 
-        m = base;
+        m = _copy(base);
         m.genesisRound = base.genesisRound + 1;
         assertTrue(RoomSpec.roomId(m) != id, "genesisRound");
 
-        m = base;
+        m = _copy(base);
         m.initialPrice = base.initialPrice + 1;
         assertTrue(RoomSpec.roomId(m) != id, "initialPrice");
 
-        m = base;
+        m = _copy(base);
         m.param = base.param + 1;
         assertTrue(RoomSpec.roomId(m) != id, "param");
 
         // `decimals` is display-only and changes nothing about the price path — and still must
         // change the identity, or two Rooms that render differently would share a commitment.
-        m = base;
+        m = _copy(base);
         m.decimals = base.decimals + 1;
         assertTrue(RoomSpec.roomId(m) != id, "decimals");
 
-        m = base;
+        m = _copy(base);
         m.family = RoomSpec.FAMILY_STEP;
         assertTrue(RoomSpec.roomId(m) != id, "family");
     }
