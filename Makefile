@@ -7,11 +7,15 @@ DEPLOYER_ACCOUNT ?= croom-deployer
 # the script simulate as 0x1804c8...  and fail the deployer assertion before ever prompting
 # for a password. Both flags, always.
 CHAIN_ID ?= 10143
+# /usr/bin/python3 on this machine is Xcode's and refuses to run until the licence is accepted
+# (`sudo xcodebuild -license accept`). Point at a working interpreter so the targets below do not
+# depend on that being done. Override if yours lives elsewhere.
+PYTHON ?= $(shell command -v /opt/homebrew/bin/python3 2>/dev/null || command -v python3)
 DEPLOYER_ADDRESS ?= 0xc50f1FbD1c36a2305B257376eb2264C3bB6179e8
 RPC              ?= monad_testnet
 export GIT_COMMIT = $(shell git rev-parse --short HEAD)
 
-.PHONY: build test lint check measure-pairing measure-precompiles measure-storage measure-fee-model verify-round sample-verify-gas whoami-deployer deploy-probe measure-pairing-tx
+.PHONY: build test lint check measure-pairing measure-precompiles measure-storage measure-fee-model verify-round sample-verify-gas prove-round whoami-deployer deploy-probe measure-pairing-tx
 
 build:  ; forge build --sizes
 test:   ; forge test
@@ -34,7 +38,7 @@ measure-precompiles:
 verify-round:
 	@test -n "$(ROUND)" || (echo "usage: make verify-round ROUND=20880831"; exit 1)
 	@SIG=$$(curl -sS "https://api.drand.sh/v2/chains/04f1e9062b8a81f848fded9c12306733282b2727ecced50032187751166ec8c3/rounds/$(ROUND)" \
-	  | python3 -c 'import sys,json;print(json.load(sys.stdin)["signature"])'); \
+	  | $(PYTHON) -c 'import sys,json;print(json.load(sys.stdin)["signature"])'); \
 	ARGS=$$(cast abi-encode "c(uint64,bytes)" $(ROUND) 0x$$SIG); \
 	CODE=$$(forge inspect src/probe/BeaconVerifyReport.sol:BeaconVerifyReport bytecode); \
 	echo "verified, gas_hash_to_point, gas_pairing, gas_total:"; \
@@ -57,7 +61,7 @@ measure-storage:
 deploy-probe:
 	forge script script/DeployProbe.s.sol --rpc-url $(RPC) \
 	  --account $(DEPLOYER_ACCOUNT) --sender $(DEPLOYER_ADDRESS) --broadcast
-	./bin/record-deployment.py broadcast/DeployProbe.s.sol/$(CHAIN_ID)/run-latest.json
+	$(PYTHON) bin/record-deployment.py broadcast/DeployProbe.s.sol/$(CHAIN_ID)/run-latest.json
 
 # Sends ONE transaction with a padded gas limit to settle whether Monad bills the limit or
 # the usage, and re-measures 0x08 through a real transaction at the same time.
@@ -65,6 +69,18 @@ measure-fee-model:
 	@test -n "$(PROBE)" || (echo "usage: make measure-fee-model PROBE=0x..."; exit 1)
 	DEPLOYER_ACCOUNT=$(DEPLOYER_ACCOUNT) DEPLOYER_ADDRESS=$(DEPLOYER_ADDRESS) \
 	  ./bin/measure-fee-model.sh $(PROBE)
+
+# GATE 1: deploys Entropy and proves a live drand round in one broadcast. Fetches the
+# round from the beacon first so the signature is never typed by hand.
+prove-round:
+	@ROUND=$$(curl -sS "https://api.drand.sh/v2/chains/04f1e9062b8a81f848fded9c12306733282b2727ecced50032187751166ec8c3/rounds/latest" \
+	  | $(PYTHON) -c 'import sys,json;print(json.load(sys.stdin)["round"])'); \
+	SIG=$$(curl -sS "https://api.drand.sh/v2/chains/04f1e9062b8a81f848fded9c12306733282b2727ecced50032187751166ec8c3/rounds/$$ROUND" \
+	  | $(PYTHON) -c 'import sys,json;print(json.load(sys.stdin)["signature"])'); \
+	echo "round $$ROUND"; \
+	ROUND=$$ROUND SIGNATURE=0x$$SIG forge script script/DeployEntropy.s.sol \
+	  --rpc-url $(RPC) --account $(DEPLOYER_ACCOUNT) --sender $(DEPLOYER_ADDRESS) --broadcast
+	$(PYTHON) bin/record-deployment.py broadcast/DeployEntropy.s.sol/$(CHAIN_ID)/run-latest.json
 
 # Confirms the keystore holds the funded address. Prompts for the password and prints an
 # address; it signs nothing and sends nothing.

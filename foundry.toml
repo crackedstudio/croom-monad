@@ -36,11 +36,16 @@ invariant = { runs = 256, depth = 128, fail_on_revert = false }
 # bin/record-deployment.py from the broadcast artifact, so no script needs write access.
 fs_permissions = [{access = "read", path = "./test/fixtures"}]
 
-# Warnings are errors. Unused parameters and shadowed names are how a derivation
-# silently reads the wrong variable.
-deny = "warnings"
+# NOT in the default profile, deliberately. `deny = "warnings"` makes a lint finding abort
+# `forge build` part-way, which leaves `out/` inconsistent — and a stale artifact directory has
+# now produced two silent failures: a test count that dropped from 27 to 19 with a whole file
+# missing, and a script that would not run with "No contract bytecode" while its artifact was
+# plainly there. Lint is a gate, not a build step. CI enforces it (see [profile.ci]); locally
+# `make lint` does, and a build that fails to build is the only thing a build failure means.
 
 [profile.ci]
+# Warnings are errors here, where an aborted build fails the job rather than leaving a trap.
+deny = "warnings"
 fuzz = { runs = 8192 }
 invariant = { runs = 1024, depth = 256 }
 verbosity = 3
