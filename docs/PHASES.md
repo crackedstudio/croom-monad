@@ -85,11 +85,17 @@ will not be on day 10.
 | --- | --- | --- | --- |
 | 2.1 | Fetch evmnet `/info` from the drand HTTP API. Confirm chain hash, scheme `bls-bn254-unchained-on-g1`, period, genesis, public key. Commit the raw JSON as a fixture with its retrieval date. Do not hardcode the hash from the plan until this agrees with it | Fixture on disk; plan's hash confirmed or the discrepancy raised | `test(entropy): pin evmnet chain info fetched from drand api` ✅ |
 | 2.2 | Vendor `randa-mu/bls-solidity` as a submodule at a pinned commit. Audit-read it and write `docs/audits/bls-solidity.md`: what it assumes, what it does not check, what we must check ourselves | Read notes exist, commit pinned | `chore(entropy): vendor bls-solidity at pinned commit` ✅ |
-| 2.3 | `Entropy.sol`: `verifyRound(round, signature)` → hash-to-G1 over the round number alone, pairing check against the G2 public key. Proven-floor storage, monotonic. **No block timestamps anywhere in this contract** | Unit tests green against ≥20 real rounds | `feat(entropy): round verification and proven floor` |
-| 2.4 | Negative tests: wrong round number, malleated signature, point not on curve, point not in subgroup, infinity, zero, a valid signature for a different round replayed | Every rejection path has a named test | `test(entropy): malformed and replayed signature rejection` |
-| 2.5 | Deploy to testnet. Verify a live round on-chain, floor bumps. Record address, tx hash and measured gas | **GATE 1 — a real evmnet round is verified on Monad and the floor moved** | `feat(entropy): testnet deployment verifying live evmnet rounds` → tag `gate-1` |
+| 2.3 | `Entropy.sol`: `verifyRound(round, signature)` → hash-to-G1 over the round number alone, pairing check against the G2 public key. Proven-floor storage, monotonic. **No block timestamps anywhere in this contract** | Unit tests green against ≥20 real rounds | `feat(entropy): round verification and proven floor` ✅ |
+| 2.4 | Negative tests: wrong round number, malleated signature, point not on curve, point not in subgroup, infinity, zero, a valid signature for a different round replayed | Every rejection path has a named test | `test(entropy): malformed and replayed signature rejection` ✅ |
+| 2.5 | Deploy to testnet. Verify a live round on-chain, floor bumps. Record address, tx hash and measured gas | **GATE 1 — a real evmnet round is verified on Monad and the floor moved** | `feat(entropy): testnet deployment verifying live evmnet rounds` ✅ tagged `gate-1` |
 
 ---
+
+> **Gate 1 passed, 3 Oct.** drand evmnet round **21,173,055** verified on Monad testnet; the proven
+> floor moved from 0 to 21173055. `Entropy` at `0x09A00a27Cac602e777681F3242f4c7eFe989D4a7`, tx
+> `0x2ec8d890…`. The emitted randomness reproduces as `sha256` of the signature fetched from the
+> public API, so the claim is checkable by a stranger. Billed 700,000 gas (0.0721 MON) against
+> 669,285 executed — the gap is the measured-limit margin, not waste.
 
 ## Phase 3 — Port the derivation · Days 3–5
 
