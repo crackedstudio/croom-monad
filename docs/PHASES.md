@@ -119,18 +119,28 @@ will not be on day 10.
 | 3.4 | `exp_wad` and `ln_wad` — 20 terms, the `⌊ ⌋` on `k`, the negative-`k` branch | `maths.json` exp/ln cases pass | `feat(tick): exp_wad and ln_wad` ✅ |
 | 3.5 | `inv_phi_wad` — Wichura AS241, three branches, the Appendix A coefficient table | `maths.json` Φ⁻¹ cases pass | `feat(tick): inverse normal CDF (AS241)` ✅ |
 | 3.6 | Spec encoding and `roomId`; state encoding and `stateHash` | Every vector's `roomId` and initial `stateHash` reproduce | `feat(tick): spec encoding and room identity` |
-| 3.7 | Derived constants — `dt`, `sdt`, `σ_t`, `var_half`, and the per-family constants | Match the reference for all ten vector Rooms | `feat(tick): derived constants` |
-| 3.8 | Randomness: `u(R, roomId, j, stream)`, `uniform_wad` | Draws match for every sampled round | `feat(tick): randomness expansion` |
-| 3.9 | **Drift** family | `drift.json` passes bit-for-bit | `feat(tick): drift price model` |
-| 3.10 | **Step** family | `step.json` passes | `feat(tick): step price model` |
+| 3.7 | Derived constants — `dt`, `sdt`, `σ_t`, `var_half`, and the per-family constants | Match the reference for all ten vector Rooms | `feat(tick): derived constants` ✅ |
+| 3.8 | Randomness: `u(R, roomId, j, stream)`, `uniform_wad` | Draws match for every sampled round | `feat(tick): randomness expansion` ✅ |
+| 3.9 | **Drift** family | `drift.json` passes bit-for-bit | `feat(tick): drift price model` ✅ |
+| 3.10 | **Step** family | `step.json` passes | `feat(tick): step price model` ✅ |
 | 3.11 | **Spike** family | `spike_up`, `spike_down`, `spike_down_wide` pass | `feat(tick): spike price model` |
-| 3.12 | Merkle — double-hashed leaves, sorted pairs, odd carry, empty root | Roots and proofs match the vectors | `feat(tick): merkle commitment` |
-| 3.13 | Fast conformance suite over the packed fixtures | **GATE 2a — three families bit-exact against the frozen vectors, suite under 5s** | `test(tick): conformance suite passes bit-exact` |
+| 3.12 | Merkle — double-hashed leaves, sorted pairs, odd carry, empty root | Roots and proofs match the vectors | `feat(tick): merkle commitment` ✅ |
+| 3.13 | Fast conformance suite over the packed fixtures | **GATE 2a — three families bit-exact against the frozen vectors, suite under 5s** | `test(tick): conformance suite passes bit-exact` ✅ |
 
 **No TypeScript derivation is needed.** The reference ships an SDK that already reproduces every
 vector bit-for-bit, so the frontend consumes it and the old step "write a TS derivation" is deleted.
 The differential test is now genuinely three-way — Rust, TypeScript and Solidity against one frozen
 artefact, none of them written to match the others.
+
+> **Gate 2a passed, 3 Oct.** Both families bit-exact against the reference's frozen vectors:
+> **20,000 rounds** and **200 epoch roots** with sample proofs, plus 7,253 arithmetic cases. The
+> fast suite is **58 tests in 0.6 s**; `CROOM_FULL_VECTORS=1` runs the complete set in 1.2 s.
+>
+> Three Solidity-specific traps were hit and are recorded in `docs/porting-notes.md`: memory
+> structs alias on assignment, so a test that mutates a "copy" silently mutates the original and
+> passes; eagerly built assertion messages exhausted the runner's memory because EVM memory never
+> frees; and holding the AS241 tables in `int256[8] memory` cost both that memory and real on-chain
+> gas in the fraud proof's terminal step.
 
 ## Phase 4 — Registry · Days 6–7 · **GATE 2**
 
