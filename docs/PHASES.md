@@ -243,6 +243,10 @@ infrastructure. The chart anyone can recompute is the stronger demo.
 
 ## Cut lines, decided in advance
 
+> **Taken on day 11 — see [`docs/decisions/0002-scope.md`](decisions/0002-scope.md).** Bisection,
+> the Envio indexer, a custom frontend, and the Spike family are all cut. Market stays. The fraud
+> proof ships single-step and says so.
+
 | Trigger | Cut | Never cut |
 | --- | --- | --- |
 | Behind at day 13 | Bisection → ship single-step challenge, state it in the writeup | The live fraud proof |
