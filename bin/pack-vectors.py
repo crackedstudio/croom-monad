@@ -62,6 +62,8 @@ def pack(entries: list, input_keys: list) -> bytes:
 FAMILIES = ["drift", "step"]
 
 ROUND_MAGIC = b"CROOMRND"
+EPOCH_MAGIC = b"CROOMEPC"
+MAX_PATH = 8
 
 
 def i128(value: int) -> bytes:
@@ -90,10 +92,41 @@ def pack_rounds(rounds: list) -> bytes:
     return bytes(out)
 
 
+def pack_epochs(epochs: list) -> bytes:
+    """One record per epoch: the root, the state hashes either side of it, and three sample proofs.
+
+    Paths are padded to MAX_PATH so records are fixed-width; the real length is stored. A lone
+    last leaf has no sibling at its level, so paths are not all the same length.
+    """
+    out = bytearray(EPOCH_MAGIC)
+    out += len(epochs).to_bytes(4, "big")
+    for e in epochs:
+        out += int(e["epoch"]).to_bytes(4, "big")
+        out += int(e["start_round"]).to_bytes(8, "big")
+        out += int(e["end_round"]).to_bytes(8, "big")
+        out += bytes.fromhex(e["prev_state_hash"])
+        out += bytes.fromhex(e["end_state_hash"])
+        out += bytes.fromhex(e["merkle_root"])
+
+        samples = e["sample_proofs"]
+        assert len(samples) == 3, f"expected 3 sample proofs, got {len(samples)}"
+        for sp in samples:
+            path = sp["proof"]
+            assert len(path) <= MAX_PATH, f"path of {len(path)} exceeds MAX_PATH"
+            out += int(sp["round"]).to_bytes(8, "big")
+            out += bytes.fromhex(sp["leaf_hash"])
+            out.append(len(path))
+            for node in path:
+                out += bytes.fromhex(node)
+            out += bytes(32 * (MAX_PATH - len(path)))
+    return bytes(out)
+
+
 def pack_families(root: pathlib.Path) -> int:
     """Room metadata as small JSON, per-round expectations as packed binary."""
-    rooms_dir = root / "test/fixtures/vectors/rooms"
-    rounds_dir = root / "test/fixtures/vectors/rounds"
+    root_dir = root / "test/fixtures/vectors"
+    rooms_dir = root_dir / "rooms"
+    rounds_dir = root_dir / "rounds"
     rooms_dir.mkdir(parents=True, exist_ok=True)
     rounds_dir.mkdir(parents=True, exist_ok=True)
 
@@ -129,8 +162,14 @@ def pack_families(root: pathlib.Path) -> int:
 
         blob = pack_rounds(data["rounds"])
         (rounds_dir / f"{name}.bin").write_bytes(blob)
+
+        epochs_dir = root_dir / "epochs"
+        epochs_dir.mkdir(parents=True, exist_ok=True)
+        eblob = pack_epochs(data["epochs"])
+        (epochs_dir / f"{name}.bin").write_bytes(eblob)
+
         print(f"{name:14s} {len(data['rounds']):>5} rounds  {len(blob):>8} bytes  "
-              f"spec {len(spec['encoded_hex']) // 2} bytes")
+              f"{len(data['epochs']):>3} epochs  {len(eblob):>7} bytes")
         total += len(data["rounds"])
     return total
 
