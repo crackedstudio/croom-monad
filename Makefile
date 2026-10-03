@@ -15,7 +15,7 @@ DEPLOYER_ADDRESS ?= 0xc50f1FbD1c36a2305B257376eb2264C3bB6179e8
 RPC              ?= monad_testnet
 export GIT_COMMIT = $(shell git rev-parse --short HEAD)
 
-.PHONY: build test lint check measure-pairing measure-precompiles measure-storage measure-fee-model verify-round sample-verify-gas prove-round whoami-deployer deploy-probe measure-pairing-tx
+.PHONY: build test lint check measure-pairing measure-precompiles measure-storage measure-fee-model verify-round sample-verify-gas deploy-entropy prove-round whoami-deployer deploy-probe measure-pairing-tx
 
 build:  ; forge build --sizes
 test:   ; forge test
@@ -70,17 +70,31 @@ measure-fee-model:
 	DEPLOYER_ACCOUNT=$(DEPLOYER_ACCOUNT) DEPLOYER_ADDRESS=$(DEPLOYER_ADDRESS) \
 	  ./bin/measure-fee-model.sh $(PROBE)
 
-# GATE 1: deploys Entropy and proves a live drand round in one broadcast. Fetches the
-# round from the beacon first so the signature is never typed by hand.
+# Deploys Entropy. Deployment only — see PROVE_GAS below for why proving is separate.
+deploy-entropy:
+	forge script script/DeployEntropy.s.sol --rpc-url $(RPC) \
+	  --account $(DEPLOYER_ACCOUNT) --sender $(DEPLOYER_ADDRESS) --broadcast
+	$(PYTHON) bin/record-deployment.py broadcast/DeployEntropy.s.sol/$(CHAIN_ID)/run-latest.json
+
+# GATE 1: proves a live drand round against a deployed Entropy, moving the floor on chain.
+#
+# The gas limit is measured, not estimated. `forge script` and `cast` both size limits from an
+# Ethereum gas schedule, and Monad's pairing costs 452,804 more than Ethereum's — so an estimated
+# limit is ~2.4x too small, the call runs out of gas, and Monad bills the whole limit anyway.
+# 700,000 is ~3% over the measured worst case. See bench/gas-estimation.md.
+PROVE_GAS ?= 700000
+
 prove-round:
+	@test -n "$(ENTROPY)" || (echo "usage: make prove-round ENTROPY=0x..."; exit 1)
 	@ROUND=$$(curl -sS "https://api.drand.sh/v2/chains/04f1e9062b8a81f848fded9c12306733282b2727ecced50032187751166ec8c3/rounds/latest" \
 	  | $(PYTHON) -c 'import sys,json;print(json.load(sys.stdin)["round"])'); \
 	SIG=$$(curl -sS "https://api.drand.sh/v2/chains/04f1e9062b8a81f848fded9c12306733282b2727ecced50032187751166ec8c3/rounds/$$ROUND" \
 	  | $(PYTHON) -c 'import sys,json;print(json.load(sys.stdin)["signature"])'); \
-	echo "round $$ROUND"; \
-	ROUND=$$ROUND SIGNATURE=0x$$SIG forge script script/DeployEntropy.s.sol \
-	  --rpc-url $(RPC) --account $(DEPLOYER_ACCOUNT) --sender $(DEPLOYER_ADDRESS) --broadcast
-	$(PYTHON) bin/record-deployment.py broadcast/DeployEntropy.s.sol/$(CHAIN_ID)/run-latest.json
+	echo "proving round $$ROUND with a measured limit of $(PROVE_GAS) gas"; \
+	cast send $(ENTROPY) "proveRound(uint64,bytes)" $$ROUND 0x$$SIG \
+	  --gas-limit $(PROVE_GAS) --rpc-url $(RPC) \
+	  --account $(DEPLOYER_ACCOUNT) --from $(DEPLOYER_ADDRESS)
+	@echo "proven floor is now: $$(cast call $(ENTROPY) 'provenFloor()(uint64)' --rpc-url $(RPC))"
 
 # Confirms the keystore holds the funded address. Prompts for the password and prints an
 # address; it signs nothing and sends nothing.

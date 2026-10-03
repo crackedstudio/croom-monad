@@ -1,0 +1,13 @@
+{
+  "address": "0x09A00a27Cac602e777681F3242f4c7eFe989D4a7",
+  "block": 67860754,
+  "chainId": 10143,
+  "commit": "4487524",
+  "compiler": "solc_version=0.8.28 evm_version=cancun optimizer_runs=1_000_000",
+  "contract": "Entropy",
+  "deployer": "0xc50f1FbD1c36a2305B257376eb2264C3bB6179e8",
+  "effectiveGasPriceWei": 103000000001,
+  "gasUsed": 2834001,
+  "paidWei": 291902103002834001,
+  "txHash": "0x43c68f346ec047d7fbb72892ad8b42264a82f96e101d3e230fb1bbcb8840c8cc"
+}
