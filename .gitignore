@@ -1,7 +1,8 @@
 # foundry
 out/
 cache/
-broadcast/*/dry-run/
+# Keep real broadcasts (they carry tx hashes); never keep simulations.
+broadcast/**/dry-run/
 docs/book/
 
 # node
