@@ -146,12 +146,17 @@ artefact, none of them written to match the others.
 
 | # | Step | Done when | Commit |
 | --- | --- | --- | --- |
-| 4.1 | Spec encoding and `roomId = keccak256(spec)`. Store the hash; emit the body in an event | Round-trip test: event body re-hashes to the id | `feat(registry): content-addressed room specs` |
-| 4.2 | Immutability proof: no owner, no setter, no pause, no upgrade path. Storage-layout snapshot test that fails if anyone adds mutable state | A test, not a claim in a comment | `test(registry): immutability and absence of admin surface` |
+| 4.1 | Spec encoding and `roomId = keccak256(spec)`. Store the hash; emit the body in an event | Round-trip test: event body re-hashes to the id | `feat(registry): content-addressed room specs` ✅ |
+| 4.2 | Immutability proof: no owner, no setter, no pause, no upgrade path. Storage-layout snapshot test that fails if anyone adds mutable state | A test, not a claim in a comment | `test(registry): immutability and absence of admin surface` ✅ |
 | 4.3 | Page-aware layout: proven floor, last finalised epoch, open-challenge pointer contiguous inside one 128-slot page. Document the slot map; assert it with a layout test | Gas measurement shows one cold page per checkpoint op | `perf(registry): contiguous hot-state layout for 128-slot pages` |
 | 4.4 | Deploy; script opens 50 Rooms spanning every price model | **GATE 2 — 50 Rooms live on testnet, specs provably immutable, derivation bit-exact** | `feat(registry): testnet deployment and room-opening script` → tag `gate-2` |
 
 ---
+
+> **Gate 2 passed, 5 Oct.** `Registry` at `0xE583B914CF2d25fc278301b195aB090640b4eECA`, **50
+> distinct Rooms live** on Monad testnet across both families and the whole permitted parameter
+> range. Specs provably immutable: `creatorOf` is write-once and the id is the content. Room ids in
+> `deployments/10143/rooms.txt`. Cost 0.70 MON, of which 0.188 was multiplier padding now corrected.
 
 ## Phase 5 — Ladder I: checkpoints · Days 8–10
 

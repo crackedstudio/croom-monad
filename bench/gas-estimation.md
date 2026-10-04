@@ -51,6 +51,28 @@ Three ways to get a trustworthy number, in order of preference:
 including deployments whose estimates are already correct, and overpaying a 2.8M-gas deployment by
 2.5× to rescue a 670k call costs far more than it saves.
 
+## Measured: how far wrong a tool's estimate is, by transaction shape
+
+Two shapes measured on Monad against what forge's own EVM estimates:
+
+| Transaction | forge estimate | real (Monad `eth_estimateGas`) | factor |
+| --- | --- | --- | --- |
+| `Entropy.proveRound` — pairing, hash-to-curve, one fresh slot | 276,012 | **669,285** | **2.42×** |
+| `Registry.openRoom` — one cross-contract read, one fresh slot | 63,086 | **77,709** | **1.23×** |
+
+The factor is **not a property of the chain, it is a property of the transaction**. It tracks how
+much of the work sits in repriced operations:
+
+- `proveRound` is dominated by `ecPairing`, repriced 5×, so it lands near 2.4×.
+- `openRoom` does ordinary work plus a cold cross-contract read (10,100 against 2,600) and one fresh storage slot (27,900 against 22,100), so it lands near 1.2×.
+
+**There is no single safe multiplier.** We used 1.8× for the 50-Room broadcast, which was
+over-cautious by 46% and cost **0.188 MON** of pure padding — a cheaper mistake than the
+under-estimate that preceded it, and still a mistake. The default is now 1.3×, measured.
+
+A multiplier is only appropriate when every transaction in a batch has the same shape, as the 50
+Rooms did. For a mixed script, measure each call.
+
 ## What changed
 
 Deployment and proving are now separate targets. Proving sends with a measured limit:

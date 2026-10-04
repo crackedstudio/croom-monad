@@ -109,7 +109,9 @@ deploy-registry:
 # cheap. The shortfall being corrected is storage and account-access repricing — openRoom reads
 # Entropy's floor across a contract boundary (10,100 on Monad against 2,600 on Ethereum) and
 # writes a fresh slot (27,900 against 22,100) — not precompiles. See bench/gas-estimation.md.
-ROOMS_GAS_MULTIPLIER ?= 180
+# Measured: openRoom really costs 77,709 on Monad against forge's 63,086 estimate, a factor of
+# 1.23. 1.3 covers it with a little margin. The first run used 1.8 and overpaid by 46%.
+ROOMS_GAS_MULTIPLIER ?= 130
 
 open-rooms:
 	@test -n "$(REGISTRY)" || (echo "usage: make open-rooms REGISTRY=0x..."; exit 1)

@@ -44,8 +44,14 @@ Monad testnet (chain `10143`). Generated from `deployments/`, never hand-typed.
 | Contract | Address | Purpose |
 | --- | --- | --- |
 | **`Entropy`** | [`0x09A00a27Cac602e777681F3242f4c7eFe989D4a7`](https://testnet.monadscan.com/address/0x09A00a27Cac602e777681F3242f4c7eFe989D4a7) | **beacon verification and the proven round floor** |
+| **`Registry`** | [`0xE583B914CF2d25fc278301b195aB090640b4eECA`](https://testnet.monadscan.com/address/0xE583B914CF2d25fc278301b195aB090640b4eECA) | **permissionless, content-addressed Room creation** |
 | `GasProbe` | [`0x5222AC024a4D74435f943A889C111DBFe330215B`](https://testnet.monadscan.com/address/0x5222AC024a4D74435f943A889C111DBFe330215B) | measurement scaffolding, step 1.4 |
 | `StoragePageProbe` | [`0xc33056Af574168157a7D801Ab213cf1d4416dDc6`](https://testnet.monadscan.com/address/0xc33056Af574168157a7D801Ab213cf1d4416dDc6) | measurement scaffolding, step 1.5 |
+
+**50 Rooms are live**, spanning both families and the full permitted parameter range — all ids in
+[`deployments/10143/rooms.txt`](deployments/10143/rooms.txt). Every one has a genesis round far
+above the proven floor, so none could have been parameterised against randomness that already
+existed.
 
 The two probes are measurement scaffolding, not protocol. Measurements: [`bench/`](bench/).
 
