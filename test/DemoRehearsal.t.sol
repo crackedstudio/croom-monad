@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.28;
 import {DemoFraudProof} from "../script/DemoFraudProof.s.sol";
+import {OpenRooms} from "../script/OpenRooms.s.sol";
 import {Entropy} from "../src/Entropy.sol";
 import {Ladder} from "../src/Ladder.sol";
-import {OpenRooms} from "../script/OpenRooms.s.sol";
 import {Registry} from "../src/Registry.sol";
 import {RoomSpec} from "../src/RoomSpec.sol";
 import {Test} from "forge-std/Test.sol";
