@@ -80,7 +80,12 @@ contract MarketTest is Test {
 
         uint256 pot = 4 ether;
         uint256 rake = pot / 100;
-        assertEq(creator.balance, rake, "the rake goes to the Room's creator");
+        assertEq(market.rakeOwed(creator), rake, "the rake is credited to the Room's creator");
+
+        uint256 c0 = creator.balance;
+        vm.prank(creator);
+        market.withdrawRake();
+        assertEq(creator.balance - c0, rake, "and withdrawable");
 
         uint256 aliceBefore = alice.balance;
         vm.prank(alice);
@@ -137,6 +142,9 @@ contract MarketTest is Test {
         market.claim(id);
         market.claim(id);
 
+        vm.prank(creator);
+        market.withdrawRake();
+
         // Truncation keeps a few wei. It must be a few wei, not a share.
         assertLt(address(market).balance, 100, "only truncation dust remains");
     }
@@ -157,7 +165,7 @@ contract MarketTest is Test {
         vm.prank(alice);
         market.claim(id);
         assertEq(alice.balance - before, 2 ether, "stake refunded in full");
-        assertEq(creator.balance, 0, "no rake on a voided market");
+        assertEq(market.rakeOwed(creator), 0, "no rake on a voided market");
     }
 
     // ── the fairness boundary ────────────────────────────────────────────────────────────────
@@ -263,6 +271,88 @@ contract MarketTest is Test {
         assertEq(market.RAKE_BPS(), 100, "1.00%");
     }
 
+    // ── the money must never be trapped ─────────────────────────────────────────────────────
+
+    /// @dev Settlement needs a *finalised* epoch, and nothing obliges anyone to post one. Without
+    /// a release path, a Room nobody checkpoints would hold its stakers' money permanently.
+    function test_AnUnsettleableMarketReleasesItsStakes() public {
+        // A market over a window in an epoch that will never be posted.
+        uint64 start = START + EPOCH_ROUNDS + 2;
+        uint64 end = start + 5;
+        bytes32 id = market.open(_spec(), start, end);
+
+        vm.prank(alice);
+        market.enter{value: 2 ether}(id, Market.Side.Up);
+        vm.prank(bob);
+        market.enter{value: 1 ether}(id, Market.Side.Down);
+
+        uint64 required = end + market.SETTLEMENT_GRACE();
+        vm.expectRevert(
+            abi.encodeWithSelector(Market.TooEarlyToVoid.selector, entropy.provenFloor(), required)
+        );
+        market.voidStale(_spec(), id);
+
+        // The floor only rises by proof, so the grace period passes by a later round being
+        // proven — there is no clock to advance.
+        _advanceFloorTo("21250000", 21_250_000);
+        assertGe(entropy.provenFloor(), required);
+
+        market.voidStale(_spec(), id);
+
+        uint256 a0 = alice.balance;
+        vm.prank(alice);
+        market.claim(id);
+        assertEq(alice.balance - a0, 2 ether, "stake returned");
+
+        uint256 b0 = bob.balance;
+        vm.prank(bob);
+        market.claim(id);
+        assertEq(bob.balance - b0, 1 ether, "stake returned");
+        assertEq(address(market).balance, 0, "nothing retained");
+    }
+
+    /// @dev A settleable market must not be voidable: discarding a real outcome because somebody
+    /// was slow would be the protocol inventing a result, in the other direction.
+    function test_ASettleableMarketCannotBeVoided() public {
+        bytes32 id = _openMarket();
+        vm.prank(alice);
+        market.enter{value: 1 ether}(id, Market.Side.Up);
+
+        _advanceFloorTo("21250000", 21_250_000);
+
+        vm.expectRevert(Market.SettlementIsPossible.selector);
+        market.voidStale(_spec(), id);
+    }
+
+    /// @dev A Room creator who cannot receive ether must not be able to freeze other people's
+    /// money. The rake is credited and pulled, so settlement never depends on the creator's
+    /// address behaving.
+    function test_ACreatorWhoRejectsPaymentCannotBlockSettlement() public {
+        RoomSpec.Spec memory hostile = _spec();
+        hostile.param = 250e15;
+
+        Rejector rejector = new Rejector();
+        vm.prank(address(rejector));
+        registry.openRoom(hostile);
+
+        // Post and finalise the hostile Room's epoch so its markets can settle.
+        _postAndFinalizeFor(hostile);
+
+        bytes32 id = market.open(hostile, MARKET_START, MARKET_END);
+        vm.prank(alice);
+        market.enter{value: 1 ether}(id, Market.Side.Up);
+        vm.prank(bob);
+        market.enter{value: 1 ether}(id, Market.Side.Down);
+
+        // Would revert if the rake were pushed to the creator.
+        market.settle(hostile, id, 0, _claimFor(hostile, MARKET_START), 0, _claimFor(hostile, MARKET_END));
+
+        assertGt(market.rakeOwed(address(rejector)), 0, "rake credited, not sent");
+        vm.prank(address(rejector));
+        vm.expectRevert(Market.TransferFailed.selector);
+        market.withdrawRake();
+    }
+
     // ── helpers ──────────────────────────────────────────────────────────────────────────────
 
     receive() external payable {}
@@ -334,6 +424,17 @@ contract MarketTest is Test {
         ladder.finalize(_spec(), 0, int128(closes[EPOCH_ROUNDS - 1]));
     }
 
+    /// @dev Advances the floor to a pinned round, skipping if it is already past. The floor is
+    /// monotone, so re-proving an old round reverts rather than quietly doing nothing.
+    function _advanceFloorTo(
+        string memory fixtureRound,
+        uint64 round
+    ) internal {
+        if (entropy.provenFloor() >= round) return;
+        string memory json = vm.readFile(string.concat("test/fixtures/drand/rounds/", fixtureRound, ".json"));
+        entropy.proveRound(round, vm.parseJsonBytes(json, ".signature"));
+    }
+
     function _proveRound(
         uint64 round
     ) internal {
@@ -350,6 +451,56 @@ contract MarketTest is Test {
         market.settle(_spec(), id, 0, _claim(MARKET_START), 0, _claim(MARKET_END));
     }
 
+    /// @dev Derives, posts and finalises epoch 0 for an arbitrary Room.
+    function _postAndFinalizeFor(
+        RoomSpec.Spec memory spec
+    ) internal {
+        Tick.Model memory model = Tick.compile(spec);
+        Ladder.PostedLeaf[] memory published = new Ladder.PostedLeaf[](EPOCH_ROUNDS);
+        int256 price = spec.initialPrice;
+
+        for (uint256 i = 0; i < EPOCH_ROUNDS; i++) {
+            (int256 c, int256 h, int256 l) = Tick.deriveRound(model, price, sha256(_sig(START + uint64(i))));
+            published[i] = Ladder.PostedLeaf({
+                round: START + uint64(i), close: int128(c), high: int128(h), low: int128(l)
+            });
+            price = c;
+        }
+
+        bytes32 prior = RoomSpec.stateHash(
+            spec.family, RoomSpec.State({price: int128(spec.initialPrice), level: 0, lo: 0, hi: 0})
+        );
+        bytes32 end =
+            RoomSpec.stateHash(spec.family, RoomSpec.State({price: int128(price), level: 0, lo: 0, hi: 0}));
+        ladder.post{value: BOND}(spec, 0, prior, end, published);
+        _advanceFloorTo("20880831", 20_880_831);
+        ladder.finalize(spec, 0, int128(price));
+    }
+
+    /// @dev A proof of one round against an arbitrary Room's epoch 0.
+    function _claimFor(
+        RoomSpec.Spec memory spec,
+        uint64 round
+    ) internal view returns (Ladder.LeafClaim memory c) {
+        Tick.Model memory model = Tick.compile(spec);
+        bytes32[] memory hashes = new bytes32[](EPOCH_ROUNDS);
+        int256 price = spec.initialPrice;
+        uint256 want = round - START;
+
+        for (uint256 i = 0; i < EPOCH_ROUNDS; i++) {
+            (int256 cl, int256 h, int256 l) = Tick.deriveRound(model, price, sha256(_sig(START + uint64(i))));
+            hashes[i] = Merkle.leafHash(START + uint64(i), cl, h, l);
+            if (i == want) {
+                c.round = round;
+                c.close = int128(cl);
+                c.high = int128(h);
+                c.low = int128(l);
+            }
+            price = cl;
+        }
+        c.path = Merkle.proof(_clone(hashes), want);
+    }
+
     function _clone(
         bytes32[] memory a
     ) internal pure returns (bytes32[] memory b) {
@@ -357,5 +508,13 @@ contract MarketTest is Test {
         for (uint256 i = 0; i < a.length; i++) {
             b[i] = a[i];
         }
+    }
+}
+
+/// @notice A Room creator that cannot receive ether. Its existence must not be anyone else's
+/// problem.
+contract Rejector {
+    receive() external payable {
+        revert("no");
     }
 }

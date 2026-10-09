@@ -69,15 +69,31 @@ contract Market {
     /// @notice `B` — how far above the proven floor a market's first round must sit at entry.
     uint64 public constant ENTRY_BUFFER = 2;
 
+    /// @notice How far past a market's last round the floor must reach before stakes can be
+    /// released without a settlement. One day of beacon rounds.
+    /// @dev Settlement needs a *finalised* epoch covering the window, and nothing obliges anyone
+    /// to post one. Without this, a Room nobody checkpoints would hold its stakers' money
+    /// permanently — the protocol failing closed on other people's funds rather than its own.
+    /// Measured in rounds above the proven floor, like every other window here.
+    uint64 public constant SETTLEMENT_GRACE = 28_800;
+
     mapping(bytes32 marketId => Book) public books;
     mapping(bytes32 marketId => mapping(address staker => mapping(Side side => uint128))) public stakeOf;
     mapping(bytes32 marketId => mapping(address staker => bool)) public claimed;
+
+    /// @notice Rake owed to Room creators, withdrawn rather than pushed.
+    /// @dev Paying the creator inside `settle` lets a creator who is a contract that reverts on
+    /// receipt — deliberately or by accident — block settlement of **every** market on their Room,
+    /// permanently, with everyone's stake inside it. The creator's own choice of address must not
+    /// be able to freeze other people's money, so the rake is credited here and pulled later.
+    mapping(address creator => uint256) public rakeOwed;
 
     event MarketOpened(bytes32 indexed marketId, bytes32 indexed roomId, uint64 startRound, uint64 endRound);
     event Staked(bytes32 indexed marketId, address indexed staker, Side side, uint128 amount);
     event Settled(bytes32 indexed marketId, Side winner, int128 startClose, int128 endClose, uint128 rake);
     event Voided(bytes32 indexed marketId, string reason);
     event Claimed(bytes32 indexed marketId, address indexed staker, uint256 amount);
+    event RakeWithdrawn(address indexed creator, uint256 amount);
 
     error RoomNotOpen(bytes32 roomId);
     error BadWindow(uint64 startRound, uint64 endRound);
@@ -88,6 +104,8 @@ contract Market {
     error AlreadyClaimed();
     error NothingToClaim();
     error WrongRound(uint64 expected, uint64 given);
+    error TooEarlyToVoid(uint64 provenFloor, uint64 required);
+    error SettlementIsPossible();
     error TransferFailed();
 
     constructor(
@@ -202,13 +220,36 @@ contract Market {
         b.payoutPool = uint128(pot - rake);
         b.state = State.Settled;
 
-        // The rake goes to the Room's creator — the supply-side incentive that makes the registry
-        // generate its own supply (spec v1.1 §7.3). The protocol's full four-way split
-        // (treasury / creator / jackpot / operations) is **not** implemented in this port; the
-        // creator share is, because it is the one the registry depends on.
-        _pay(registry.creatorOf(b.roomId), rake);
+        // Credited, not sent: see `rakeOwed`. The rake goes to the Room's creator — the
+        // supply-side incentive that makes the registry generate its own supply (spec v1.1 §7.3).
+        // The protocol's full four-way split (treasury / creator / jackpot / operations) is **not**
+        // implemented in this port; the creator share is, because the registry depends on it.
+        rakeOwed[registry.creatorOf(b.roomId)] += rake;
 
         emit Settled(id, winner, startClose, endClose, uint128(rake));
+    }
+
+    /// @notice Releases stakes from a market nobody ever settled. Anyone may call.
+    /// @dev Only when settlement is genuinely unavailable: if the covering epoch has finalised,
+    /// the market can be settled and voiding it would discard a real outcome. The grace period is
+    /// long enough that a late poster is not punished for being late.
+    function voidStale(
+        RoomSpec.Spec calldata spec,
+        bytes32 id
+    ) external {
+        Book storage b = books[id];
+        if (b.state != State.Open) revert NotOpen(b.state);
+
+        uint64 required = b.endRound + SETTLEMENT_GRACE;
+        uint64 floor = entropy.provenFloor();
+        if (floor < required) revert TooEarlyToVoid(floor, required);
+
+        uint64 epoch = (b.endRound - spec.genesisRound) / spec.epochRounds;
+        (,,,,, Ladder.Status status,) = ladder.checkpoints(RoomSpec.roomId(spec), epoch);
+        if (status == Ladder.Status.Final) revert SettlementIsPossible();
+
+        b.state = State.Void;
+        emit Voided(id, "unsettleable");
     }
 
     /// @notice Claims a winning share, or a refund from a voided market.
@@ -235,6 +276,15 @@ contract Market {
         _pay(msg.sender, amount);
 
         emit Claimed(id, msg.sender, amount);
+    }
+
+    /// @notice Withdraws rake a Room's creator has earned.
+    function withdrawRake() external {
+        uint256 amount = rakeOwed[msg.sender];
+        if (amount == 0) revert NothingToClaim();
+        rakeOwed[msg.sender] = 0;
+        _pay(msg.sender, amount);
+        emit RakeWithdrawn(msg.sender, amount);
     }
 
     /// @notice What a stake of `amount` would pay if the market settled this way, rake included.
