@@ -15,7 +15,7 @@ DEPLOYER_ADDRESS ?= 0xc50f1FbD1c36a2305B257376eb2264C3bB6179e8
 RPC              ?= monad_testnet
 export GIT_COMMIT = $(shell git rev-parse --short HEAD)
 
-.PHONY: build test lint check measure-pairing measure-precompiles measure-storage measure-fee-model verify-round sample-verify-gas deploy-entropy prove-round deploy-registry open-rooms deploy-ladder demo-post-lie demo-disprove fund-challenger whoami-deployer deploy-probe measure-pairing-tx
+.PHONY: build test lint check measure-pairing measure-precompiles measure-storage measure-fee-model verify-round sample-verify-gas deploy-entropy prove-round deploy-registry open-rooms deploy-ladder deploy-market web demo-post-lie demo-disprove fund-challenger whoami-deployer deploy-probe measure-pairing-tx
 
 build:  ; forge build --sizes
 test:   ; forge test
@@ -152,6 +152,18 @@ demo-disprove:
 	LADDER=$(LADDER) forge script script/DemoDisprove.s.sol --rpc-url $(RPC) \
 	  --account $(or $(ACCOUNT),$(DEPLOYER_ACCOUNT)) --sender $(or $(FROM),$(DEPLOYER_ADDRESS)) \
 	  --gas-estimate-multiplier $(DEMO_GAS_MULTIPLIER) --broadcast
+
+deploy-market:
+	@test -n "$(LADDER)" || (echo "usage: make deploy-market LADDER=0x..."; exit 1)
+	LADDER=$(LADDER) forge script script/DeployMarket.s.sol --rpc-url $(RPC) \
+	  --account $(DEPLOYER_ACCOUNT) --sender $(DEPLOYER_ADDRESS) --broadcast
+	$(PYTHON) bin/record-deployment.py broadcast/DeployMarket.s.sol/$(CHAIN_ID)/run-latest.json
+	$(PYTHON) bin/gen-addresses.py
+
+# Rebuilds the frontend's generated address file and bundle.
+web:
+	$(PYTHON) bin/gen-addresses.py
+	cd web && npm install --silent && npm run build
 
 # Confirms the keystore holds the funded address. Prompts for the password and prints an
 # address; it signs nothing and sends nothing.

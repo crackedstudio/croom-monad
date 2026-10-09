@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "croom-web",
+      "runtimeExecutable": "/opt/homebrew/bin/python3",
+      "runtimeArgs": ["-m", "http.server", "8173", "--directory", "web"],
+      "port": 8173
+    }
+  ]
+}
