@@ -104,6 +104,7 @@ contract Ladder {
     error WrongBond(uint256 expected, uint256 given);
     error PrevStateMismatch(bytes32 expected, bytes32 given);
     error NotPending(Status status);
+    error NotFinal(Status status);
     error WindowOpen(uint64 provenFloor, uint64 deadlineRound);
     error WindowClosed(uint64 provenFloor, uint64 deadlineRound);
     error RoundOutOfEpoch(uint64 round);
@@ -288,6 +289,30 @@ contract Ladder {
         if (_stateHashOf(spec.family, claimed) == cp.endStateHash) revert CheckpointIsHonest();
 
         _reject(roomId, epoch, cp, last.round, "endState");
+    }
+
+    // ── reading a settled price ──────────────────────────────────────────────────────────────
+
+    /// @notice The closing price of a round, proven against a **finalised** epoch.
+    /// @dev This is how anything built on top of the ladder learns a price: not by being told one,
+    /// but by being shown one with a proof. The chain stores a 32-byte root per epoch; the caller
+    /// supplies the leaf and its path, and the contract checks them.
+    ///
+    /// Only finalised epochs count. A pending checkpoint might still be thrown out, and settling a
+    /// market against a root that later turns out to be a lie would make the fraud proof pointless
+    /// — the lie would already have been paid out.
+    function provenClose(
+        RoomSpec.Spec calldata spec,
+        uint64 epoch,
+        LeafClaim calldata claim
+    ) external view returns (int128) {
+        bytes32 roomId = RoomSpec.roomId(spec);
+        Checkpoint storage cp = checkpoints[roomId][epoch];
+        if (cp.status != Status.Final) revert NotFinal(cp.status);
+
+        _requireInEpoch(spec, epoch, claim.round);
+        _requireCommitted(cp.merkleRoot, claim);
+        return claim.close;
     }
 
     // ── internals ────────────────────────────────────────────────────────────────────────────
