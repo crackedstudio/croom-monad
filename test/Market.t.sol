@@ -318,7 +318,16 @@ contract MarketTest is Test {
             RoomSpec.FAMILY_DRIFT,
             RoomSpec.State({price: int128(closes[EPOCH_ROUNDS - 1]), level: 0, lo: 0, hi: 0})
         );
-        ladder.post{value: BOND}(_spec(), 0, prior, end, Merkle.root(_clone(leaves)));
+        Ladder.PostedLeaf[] memory published = new Ladder.PostedLeaf[](EPOCH_ROUNDS);
+        for (uint256 i = 0; i < EPOCH_ROUNDS; i++) {
+            published[i] = Ladder.PostedLeaf({
+                round: START + uint64(i),
+                close: int128(closes[i]),
+                high: int128(highs[i]),
+                low: int128(lows[i])
+            });
+        }
+        ladder.post{value: BOND}(_spec(), 0, prior, end, published);
 
         string memory json = vm.readFile("test/fixtures/drand/rounds/1000.json");
         entropy.proveRound(1000, vm.parseJsonBytes(json, ".signature"));

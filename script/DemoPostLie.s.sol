@@ -29,7 +29,7 @@ contract DemoPostLie is DemoBase {
         console.logBytes32(RoomSpec.roomId(spec));
         console.log("floor: ", Entropy(address(ladder.entropy())).provenFloor());
 
-        (bytes32[] memory leaves, int256[] memory closes,,) = _deriveEpoch(spec);
+        (, int256[] memory closes, int256[] memory highs, int256[] memory lows) = _deriveEpoch(spec);
 
         bytes32 priorHash = RoomSpec.stateHash(
             spec.family, RoomSpec.State({price: int128(spec.initialPrice), level: 0, lo: 0, hi: 0})
@@ -38,8 +38,20 @@ contract DemoPostLie is DemoBase {
             spec.family, RoomSpec.State({price: int128(closes[EPOCH_ROUNDS - 1]), level: 0, lo: 0, hi: 0})
         );
 
+        // Every round is published, not just the root. A poster who withheld them could not be
+        // disproved — see the note on `Ladder.post`.
+        Ladder.PostedLeaf[] memory published = new Ladder.PostedLeaf[](EPOCH_ROUNDS);
+        for (uint256 i = 0; i < EPOCH_ROUNDS; i++) {
+            published[i] = Ladder.PostedLeaf({
+                round: GENESIS + uint64(i),
+                close: int128(closes[i]),
+                high: int128(highs[i]),
+                low: int128(lows[i])
+            });
+        }
+
         vm.startBroadcast();
-        ladder.post{value: ladder.bond()}(spec, 0, priorHash, endHash, Merkle.root(_clone(leaves)));
+        ladder.post{value: ladder.bond()}(spec, 0, priorHash, endHash, published);
         vm.stopBroadcast();
 
         console.log("posted a dishonest checkpoint; leaf", LIE_AT, "is wrong by 1");

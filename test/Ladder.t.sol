@@ -61,7 +61,7 @@ contract LadderTest is Test {
         int128 endPrice = int128(rows[EPOCH_ROUNDS - 1].close);
 
         vm.prank(poster);
-        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), root);
+        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), _published(rows));
 
         uint256 before = poster.balance;
         _closeTheWindow();
@@ -79,7 +79,7 @@ contract LadderTest is Test {
     function test_AnyoneCanFinalize() public {
         (Row[] memory rows,, bytes32 root) = _epoch(HONEST);
         vm.prank(poster);
-        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), root);
+        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), _published(rows));
 
         _closeTheWindow();
         uint256 before = poster.balance;
@@ -96,7 +96,7 @@ contract LadderTest is Test {
         (Row[] memory rows, bytes32[] memory leaves, bytes32 root) = _epoch(at);
 
         vm.prank(poster);
-        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), root);
+        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), _published(rows));
 
         Ladder.LeafClaim memory prev = _claim(rows, leaves, at - 1);
         Ladder.LeafClaim memory cur = _claim(rows, leaves, at);
@@ -119,7 +119,7 @@ contract LadderTest is Test {
         (Row[] memory rows, bytes32[] memory leaves, bytes32 root) = _epoch(0);
 
         vm.prank(poster);
-        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), root);
+        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), _published(rows));
 
         Ladder.LeafClaim memory first = _claim(rows, leaves, 0);
         bytes memory signature = _sig(START);
@@ -142,7 +142,7 @@ contract LadderTest is Test {
         );
 
         vm.prank(poster);
-        ladder.post{value: BOND}(_spec(), 0, _priorHash(), wrongEnd, root);
+        ladder.post{value: BOND}(_spec(), 0, _priorHash(), wrongEnd, _published(rows));
 
         Ladder.LeafClaim memory last = _claim(rows, leaves, EPOCH_ROUNDS - 1);
 
@@ -161,7 +161,7 @@ contract LadderTest is Test {
 
             (Row[] memory rows, bytes32[] memory leaves, bytes32 root) = _epoch(at);
             vm.prank(poster);
-            ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), root);
+            ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), _published(rows));
 
             Ladder.LeafClaim memory prev = _claim(rows, leaves, at - 1);
             Ladder.LeafClaim memory cur = _claim(rows, leaves, at);
@@ -181,7 +181,7 @@ contract LadderTest is Test {
     function test_AnHonestCheckpointCannotBeDisproved() public {
         (Row[] memory rows, bytes32[] memory leaves, bytes32 root) = _epoch(HONEST);
         vm.prank(poster);
-        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), root);
+        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), _published(rows));
 
         // Every claim and signature is built *before* arming expectRevert: these helpers call
         // cheatcodes, and a cheatcode between arming and the call confuses the expectation.
@@ -207,7 +207,7 @@ contract LadderTest is Test {
     function test_AnUncommittedLeafIsRejected() public {
         (Row[] memory rows, bytes32[] memory leaves, bytes32 root) = _epoch(HONEST);
         vm.prank(poster);
-        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), root);
+        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), _published(rows));
 
         Ladder.LeafClaim memory prev = _claim(rows, leaves, 5);
         Ladder.LeafClaim memory fake = _claim(rows, leaves, 6);
@@ -221,7 +221,7 @@ contract LadderTest is Test {
     function test_NonAdjacentLeavesAreRejected() public {
         (Row[] memory rows, bytes32[] memory leaves, bytes32 root) = _epoch(HONEST);
         vm.prank(poster);
-        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), root);
+        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), _published(rows));
 
         Ladder.LeafClaim memory prev = _claim(rows, leaves, 4);
         Ladder.LeafClaim memory cur = _claim(rows, leaves, 6);
@@ -236,7 +236,7 @@ contract LadderTest is Test {
     function test_CannotFinalizeWhileTheWindowIsOpen() public {
         (Row[] memory rows,, bytes32 root) = _epoch(HONEST);
         vm.prank(poster);
-        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), root);
+        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), _published(rows));
 
         int128 endPrice = int128(rows[EPOCH_ROUNDS - 1].close);
 
@@ -250,7 +250,7 @@ contract LadderTest is Test {
         uint256 at = 9;
         (Row[] memory rows, bytes32[] memory leaves, bytes32 root) = _epoch(at);
         vm.prank(poster);
-        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), root);
+        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), _published(rows));
 
         Ladder.LeafClaim memory prev = _claim(rows, leaves, at - 1);
         Ladder.LeafClaim memory cur = _claim(rows, leaves, at);
@@ -271,13 +271,13 @@ contract LadderTest is Test {
         vm.startPrank(poster);
 
         vm.expectRevert(abi.encodeWithSelector(Ladder.WrongEpoch.selector, uint64(0), uint64(1)));
-        ladder.post{value: BOND}(_spec(), 1, prior, bytes32(0), bytes32(0));
+        ladder.post{value: BOND}(_spec(), 1, prior, bytes32(0), _none());
 
         vm.expectRevert(abi.encodeWithSelector(Ladder.WrongBond.selector, BOND, uint256(0)));
-        ladder.post{value: 0}(_spec(), 0, prior, bytes32(0), bytes32(0));
+        ladder.post{value: 0}(_spec(), 0, prior, bytes32(0), _none());
 
         vm.expectRevert();
-        ladder.post{value: BOND}(_spec(), 0, keccak256("fiction"), bytes32(0), bytes32(0));
+        ladder.post{value: BOND}(_spec(), 0, keccak256("fiction"), bytes32(0), _none());
 
         vm.stopPrank();
     }
@@ -290,13 +290,13 @@ contract LadderTest is Test {
 
         vm.prank(poster);
         vm.expectRevert(abi.encodeWithSelector(Ladder.RoomNotOpen.selector, id));
-        ladder.post{value: BOND}(other, 0, prior, bytes32(0), bytes32(0));
+        ladder.post{value: BOND}(other, 0, prior, bytes32(0), _none());
     }
 
     function test_CannotPostTheSameEpochTwice() public {
         (Row[] memory rows,, bytes32 root) = _epoch(HONEST);
         vm.prank(poster);
-        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), root);
+        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), _published(rows));
 
         bytes32 prior = _priorHash();
         bytes32 end = _endHash(rows);
@@ -305,7 +305,7 @@ contract LadderTest is Test {
         vm.expectRevert(
             abi.encodeWithSelector(Ladder.EpochAlreadyPosted.selector, uint64(0), Ladder.Status.Pending)
         );
-        ladder.post{value: BOND}(_spec(), 0, prior, end, root);
+        ladder.post{value: BOND}(_spec(), 0, prior, end, _published(rows));
     }
 
     /// @dev A rejected epoch must be re-postable: a liar's checkpoint has been thrown out and
@@ -315,7 +315,7 @@ contract LadderTest is Test {
         uint256 at = 4;
         (Row[] memory bad, bytes32[] memory badLeaves, bytes32 badRoot) = _epoch(at);
         vm.prank(poster);
-        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(bad), badRoot);
+        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(bad), _published(bad));
 
         Ladder.LeafClaim memory prev = _claim(bad, badLeaves, at - 1);
         Ladder.LeafClaim memory cur = _claim(bad, badLeaves, at);
@@ -330,7 +330,7 @@ contract LadderTest is Test {
         vm.deal(honest, 1 ether);
 
         vm.prank(honest);
-        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(good), goodRoot);
+        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(good), _published(good));
         assertEq(uint8(_status(0)), uint8(Ladder.Status.Pending), "re-posted");
 
         _closeTheWindow();
@@ -344,12 +344,75 @@ contract LadderTest is Test {
     function test_NoBondIsEverStranded() public {
         (Row[] memory rows,, bytes32 root) = _epoch(HONEST);
         vm.prank(poster);
-        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), root);
+        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), _published(rows));
         assertEq(address(ladder).balance, BOND, "holding exactly one bond");
 
         _closeTheWindow();
         ladder.finalize(_spec(), 0, int128(rows[EPOCH_ROUNDS - 1].close));
         assertEq(address(ladder).balance, 0, "holding nothing once settled");
+    }
+
+    // ── publication: the premise the disproof rests on ──────────────────────────────────────
+
+    /// @dev A disproof must exhibit a committed leaf *with its Merkle path*, and nobody can build
+    /// a path for a leaf they have never seen. If a poster could commit a bare root and withhold
+    /// its preimages, a challenger would know the root was wrong and be unable to prove it. The
+    /// signature makes withholding impossible: the leaves are the argument, and the root is
+    /// derived from them.
+    function test_TheRootIsDerivedFromThePublishedLeaves() public {
+        (Row[] memory rows, bytes32[] memory leaves, bytes32 expected) = _epoch(HONEST);
+
+        vm.prank(poster);
+        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), _published(rows));
+
+        (,, bytes32 stored,,,,) = ladder.checkpoints(RoomSpec.roomId(_spec()), 0);
+        assertEq(stored, expected, "the stored root is the one the published leaves hash to");
+
+        // And every published leaf is provable against it, which is what a challenger needs.
+        for (uint256 i = 0; i < EPOCH_ROUNDS; i++) {
+            assertTrue(
+                Merkle.verify(stored, leaves[i], Merkle.proof(_clone(leaves), i)),
+                "published leaf must be provable"
+            );
+        }
+    }
+
+    function test_RejectsAnEpochWithTheWrongNumberOfLeaves() public {
+        (Row[] memory rows,,) = _epoch(HONEST);
+        Ladder.PostedLeaf[] memory full = _published(rows);
+
+        Ladder.PostedLeaf[] memory short_ = new Ladder.PostedLeaf[](EPOCH_ROUNDS - 1);
+        for (uint256 i = 0; i < EPOCH_ROUNDS - 1; i++) {
+            short_[i] = full[i];
+        }
+
+        vm.prank(poster);
+        vm.expectRevert(
+            abi.encodeWithSelector(Ladder.WrongLeafCount.selector, uint256(EPOCH_ROUNDS), EPOCH_ROUNDS - 1)
+        );
+        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), short_);
+    }
+
+    /// @dev A sorted-pair Merkle proof cannot bind a leaf's *position*, so a tree holding two
+    /// different leaves for the same round would let both verify — and the poster would choose
+    /// whichever suited them when a market settled. Requiring the rounds to be contiguous and
+    /// ascending makes that tree unpostable rather than merely disprovable.
+    function test_RejectsRepeatedOrOutOfOrderRounds() public {
+        (Row[] memory rows,,) = _epoch(HONEST);
+
+        Ladder.PostedLeaf[] memory repeated = _published(rows);
+        repeated[9].round = repeated[8].round; // two leaves claiming the same round
+
+        vm.prank(poster);
+        vm.expectRevert(abi.encodeWithSelector(Ladder.LeafOutOfOrder.selector, START + 9, START + 8));
+        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), repeated);
+
+        Ladder.PostedLeaf[] memory foreign = _published(rows);
+        foreign[0].round = START + 500; // a leaf from some other epoch entirely
+
+        vm.prank(poster);
+        vm.expectRevert(abi.encodeWithSelector(Ladder.LeafOutOfOrder.selector, START, START + 500));
+        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), foreign);
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────────────────────
@@ -415,6 +478,26 @@ contract LadderTest is Test {
         c.high = int128(rows[index].high);
         c.low = int128(rows[index].low);
         c.path = Merkle.proof(_clone(leaves), index);
+    }
+
+    /// @dev The leaves a poster publishes. The contract derives the root from these, so a test
+    /// cannot accidentally commit a root that disagrees with the rows it is reasoning about.
+    function _published(
+        Row[] memory rows
+    ) internal pure returns (Ladder.PostedLeaf[] memory out) {
+        out = new Ladder.PostedLeaf[](rows.length);
+        for (uint256 i = 0; i < rows.length; i++) {
+            out[i] = Ladder.PostedLeaf({
+                round: START + uint64(i),
+                close: int128(rows[i].close),
+                high: int128(rows[i].high),
+                low: int128(rows[i].low)
+            });
+        }
+    }
+
+    function _none() internal pure returns (Ladder.PostedLeaf[] memory) {
+        return new Ladder.PostedLeaf[](0);
     }
 
     function _priorHash() internal pure returns (bytes32) {

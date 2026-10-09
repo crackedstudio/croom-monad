@@ -91,7 +91,8 @@ contract Ladder {
         uint64 indexed epoch,
         address indexed poster,
         bytes32 merkleRoot,
-        uint64 deadlineRound
+        uint64 deadlineRound,
+        PostedLeaf[] leaves
     );
     event CheckpointFinalized(bytes32 indexed roomId, uint64 indexed epoch, int128 endPrice);
     event CheckpointRejected(
@@ -102,6 +103,8 @@ contract Ladder {
     error WrongEpoch(uint64 expected, uint64 given);
     error EpochAlreadyPosted(uint64 epoch, Status status);
     error WrongBond(uint256 expected, uint256 given);
+    error WrongLeafCount(uint256 expected, uint256 given);
+    error LeafOutOfOrder(uint64 expected, uint64 given);
     error PrevStateMismatch(bytes32 expected, bytes32 given);
     error NotPending(Status status);
     error NotFinal(Status status);
@@ -126,16 +129,37 @@ contract Ladder {
 
     // ── posting and finalizing ───────────────────────────────────────────────────────────────
 
-    /// @notice Commits an epoch of ticks. Permissionless.
-    /// @dev Epochs must be posted in order, and `prevStateHash` must equal the state this contract
-    /// already finalised — so a liar cannot start from a convenient fiction. That check is what
-    /// makes the three local conditions in the contract docs exhaustive.
+    /// @notice Commits an epoch of ticks, **publishing every round's result**. Permissionless.
+    ///
+    /// @dev The leaves are passed in full and the root is computed here rather than asserted by
+    /// the poster. Three things follow, and the first is the reason this function does not simply
+    /// take a root:
+    ///
+    /// **Data availability.** A disproof must exhibit a committed leaf with its Merkle path, and
+    /// nobody can produce a path for a leaf they have never seen. A poster who committed only a
+    /// root could withhold its preimages: a challenger re-deriving honestly would *know* the root
+    /// was wrong and still be unable to prove it, the checkpoint would finalise, and from then on
+    /// only the poster could produce `provenClose` proofs — which is to say, only the poster would
+    /// decide what price settles a market.
+    ///
+    /// This is what the reference's bisection game provides implicitly: each round of that protocol
+    /// forces the poster to disclose a midpoint. Replacing bisection with a one-shot disproof kept
+    /// the completeness argument and removed the mechanism that made its premise true. Publishing
+    /// the leaves restores it, at a cost of roughly 56 bytes of calldata per round.
+    ///
+    /// **Structural correctness by construction.** Rounds must be exactly the epoch's, in order,
+    /// with no gaps, repeats or extras. A sorted-pair Merkle proof cannot bind a leaf's *position*,
+    /// so a tree holding two different leaves for the same round would let both verify — and the
+    /// poster would pick whichever suited them at settlement. Checked here, that tree cannot be
+    /// committed at all.
+    ///
+    /// **The root cannot disagree with the leaves**, because it is derived from them.
     function post(
         RoomSpec.Spec calldata spec,
         uint64 epoch,
         bytes32 prevStateHash,
         bytes32 endStateHash,
-        bytes32 merkleRoot
+        PostedLeaf[] calldata leaves
     ) external payable {
         bytes32 roomId = RoomSpec.roomId(spec);
         if (!registry.isOpen(roomId)) revert RoomNotOpen(roomId);
@@ -145,13 +169,10 @@ contract Ladder {
         if (epoch != rs.nextEpoch) revert WrongEpoch(rs.nextEpoch, epoch);
 
         // A second post to a live epoch would overwrite the first checkpoint — replacing its
-        // poster and zeroing the record of its bond, leaving that bond stranded in the contract
-        // and the first poster with no way to reclaim it. `nextEpoch` alone does not prevent this,
-        // because it only advances on finalize.
-        //
-        // A **rejected** epoch may be re-posted: a liar's checkpoint has been thrown out and
-        // somebody still has to commit the correct one. Its bond is already paid out to whoever
-        // disproved it, so there is nothing left to strand.
+        // poster and zeroing the record of its bond, leaving that bond stranded and the first
+        // poster unable to reclaim it. `nextEpoch` alone does not prevent this: it only advances
+        // on finalize. A **rejected** epoch may be re-posted, since somebody still has to commit
+        // the correct one and its bond has already gone to whoever disproved it.
         Status existing = checkpoints[roomId][epoch].status;
         if (existing != Status.None && existing != Status.Rejected) {
             revert EpochAlreadyPosted(epoch, existing);
@@ -159,6 +180,8 @@ contract Ladder {
 
         bytes32 expectedPrev = _stateHashOf(spec.family, _priorState(spec, rs));
         if (prevStateHash != expectedPrev) revert PrevStateMismatch(expectedPrev, prevStateHash);
+
+        bytes32 merkleRoot = _rootOf(spec, epoch, leaves);
 
         uint64 deadline = entropy.provenFloor() + challengeRounds;
         checkpoints[roomId][epoch] = Checkpoint({
@@ -171,7 +194,29 @@ contract Ladder {
             bond: uint96(msg.value)
         });
 
-        emit CheckpointPosted(roomId, epoch, msg.sender, merkleRoot, deadline);
+        // Emitted as well as being in calldata, so an indexer never has to read transactions.
+        emit CheckpointPosted(roomId, epoch, msg.sender, merkleRoot, deadline, leaves);
+    }
+
+    /// @dev Validates the shape of a published epoch and returns its root.
+    function _rootOf(
+        RoomSpec.Spec calldata spec,
+        uint64 epoch,
+        PostedLeaf[] calldata leaves
+    ) private pure returns (bytes32) {
+        if (leaves.length != spec.epochRounds) revert WrongLeafCount(spec.epochRounds, leaves.length);
+
+        uint64 start = spec.genesisRound + epoch * spec.epochRounds;
+        bytes32[] memory hashes = new bytes32[](leaves.length);
+        for (uint256 i = 0; i < leaves.length; i++) {
+            // Contiguous and ascending from the epoch's first round: no gaps, no repeats, no
+            // leaves belonging to some other epoch.
+            if (leaves[i].round != start + uint64(i)) {
+                revert LeafOutOfOrder(start + uint64(i), leaves[i].round);
+            }
+            hashes[i] = Merkle.leafHash(leaves[i].round, leaves[i].close, leaves[i].high, leaves[i].low);
+        }
+        return Merkle.root(hashes);
     }
 
     /// @notice Settles an unchallenged checkpoint once the window has passed. Callable by anyone.
@@ -207,6 +252,14 @@ contract Ladder {
     }
 
     // ── the fraud proof ──────────────────────────────────────────────────────────────────────
+
+    /// @notice One round's result, as published by the poster.
+    struct PostedLeaf {
+        uint64 round;
+        int128 close;
+        int128 high;
+        int128 low;
+    }
 
     /// @notice A committed leaf and the Merkle path proving it belongs to the epoch's root.
     struct LeafClaim {
