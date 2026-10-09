@@ -75,7 +75,7 @@ contract MerkleTest is Test {
         Ctx memory c,
         uint256 e,
         int256 price
-    ) private view returns (int256) {
+    ) private pure returns (int256) {
         uint256 at = E_HEADER + e * E_RECORD;
 
         RoomSpec.State memory st = RoomSpec.State({price: price, level: 0, lo: 0, hi: 0});
@@ -107,7 +107,7 @@ contract MerkleTest is Test {
         Ctx memory c,
         uint256 e,
         int256 price
-    ) private view returns (bytes32[] memory leaves, int256 endPrice) {
+    ) private pure returns (bytes32[] memory leaves, int256 endPrice) {
         leaves = new bytes32[](c.epochRounds);
         for (uint256 j = 0; j < c.epochRounds; j++) {
             uint256 rAt = R_HEADER + (e * c.epochRounds + j) * R_RECORD;
@@ -136,7 +136,7 @@ contract MerkleTest is Test {
         bytes32[] memory leaves,
         bytes32 expectedRoot,
         uint256 e
-    ) private view {
+    ) private pure {
         for (uint256 k = 0; k < 3; k++) {
             uint256 pAt = at + PROOFS_AT + k * PROOF_BLOCK;
             uint64 round = uint64(uint256(_word(c.epochs, pAt) >> 192));

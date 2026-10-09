@@ -65,7 +65,7 @@ contract TickTest is Test {
         uint256 at,
         int256 price,
         uint256 i
-    ) private view returns (int256) {
+    ) private pure returns (int256) {
         (int256 close, int256 high, int256 low) = Tick.deriveRound(model, price, _word(data, at + 8));
 
         // Compare first, build the message only when it is about to be used. `_why` concatenates

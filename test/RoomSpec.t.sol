@@ -145,7 +145,7 @@ contract RoomSpecTest is Test {
     /// @dev Negative prices cannot occur in a well-formed Room, but the encoder must still produce
     /// the reference's two's complement rather than reverting or truncating, because the fraud
     /// proof may be asked to hash a state a liar proposed.
-    function test_EncodesNegativeValuesAsTwosComplement() public view {
+    function test_EncodesNegativeValuesAsTwosComplement() public pure {
         RoomSpec.State memory st = RoomSpec.State({price: -1, level: 0, lo: 0, hi: 0});
         bytes memory encoded = RoomSpec.encodeState(RoomSpec.FAMILY_DRIFT, st);
         assertEq(encoded.length, 50, "50 bytes");

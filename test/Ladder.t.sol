@@ -57,7 +57,7 @@ contract LadderTest is Test {
     // ── the honest path ──────────────────────────────────────────────────────────────────────
 
     function test_PostThenFinalizeReturnsTheBondAndAdvancesTheRoom() public {
-        (Row[] memory rows,, bytes32 root) = _epoch(HONEST);
+        (Row[] memory rows,,) = _epoch(HONEST);
         int128 endPrice = int128(rows[EPOCH_ROUNDS - 1].close);
 
         vm.prank(poster);
@@ -77,7 +77,7 @@ contract LadderTest is Test {
     /// @dev Anyone may finalize, and the bond still goes to the poster — so a stranger finalizing
     /// costs them gas and benefits everyone. There is no privileged finalizer to bribe or stall.
     function test_AnyoneCanFinalize() public {
-        (Row[] memory rows,, bytes32 root) = _epoch(HONEST);
+        (Row[] memory rows,,) = _epoch(HONEST);
         vm.prank(poster);
         ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), _published(rows));
 
@@ -93,7 +93,7 @@ contract LadderTest is Test {
 
     function test_ALiarWhoCorruptsAMiddleLeafLosesTheBond() public {
         uint256 at = 9;
-        (Row[] memory rows, bytes32[] memory leaves, bytes32 root) = _epoch(at);
+        (Row[] memory rows, bytes32[] memory leaves,) = _epoch(at);
 
         vm.prank(poster);
         ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), _published(rows));
@@ -116,7 +116,7 @@ contract LadderTest is Test {
     /// @dev Corrupting the *first* leaf cannot be caught by comparing adjacent leaves — there is
     /// no earlier leaf in the epoch. The prior state comes from the Room instead.
     function test_ALiarWhoCorruptsTheFirstLeafLosesTheBond() public {
-        (Row[] memory rows, bytes32[] memory leaves, bytes32 root) = _epoch(0);
+        (Row[] memory rows, bytes32[] memory leaves,) = _epoch(0);
 
         vm.prank(poster);
         ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), _published(rows));
@@ -134,7 +134,7 @@ contract LadderTest is Test {
     /// @dev Every leaf correct, but the claimed end state is not. No signature and no
     /// re-execution: two things the poster committed to in one breath that disagree.
     function test_ALiarWhoMisstatesTheEndStateLosesTheBond() public {
-        (Row[] memory rows, bytes32[] memory leaves, bytes32 root) = _epoch(HONEST);
+        (Row[] memory rows, bytes32[] memory leaves,) = _epoch(HONEST);
 
         bytes32 wrongEnd = RoomSpec.stateHash(
             RoomSpec.FAMILY_DRIFT,
@@ -159,7 +159,7 @@ contract LadderTest is Test {
         for (uint256 at = 1; at < EPOCH_ROUNDS; at++) {
             uint256 snapshot = vm.snapshotState();
 
-            (Row[] memory rows, bytes32[] memory leaves, bytes32 root) = _epoch(at);
+            (Row[] memory rows, bytes32[] memory leaves,) = _epoch(at);
             vm.prank(poster);
             ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), _published(rows));
 
@@ -179,7 +179,7 @@ contract LadderTest is Test {
 
     /// @dev The mirror of the invariant. Without it the fraud proof would be a theft primitive.
     function test_AnHonestCheckpointCannotBeDisproved() public {
-        (Row[] memory rows, bytes32[] memory leaves, bytes32 root) = _epoch(HONEST);
+        (Row[] memory rows, bytes32[] memory leaves,) = _epoch(HONEST);
         vm.prank(poster);
         ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), _published(rows));
 
@@ -205,7 +205,7 @@ contract LadderTest is Test {
     }
 
     function test_AnUncommittedLeafIsRejected() public {
-        (Row[] memory rows, bytes32[] memory leaves, bytes32 root) = _epoch(HONEST);
+        (Row[] memory rows, bytes32[] memory leaves,) = _epoch(HONEST);
         vm.prank(poster);
         ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), _published(rows));
 
@@ -219,7 +219,7 @@ contract LadderTest is Test {
     }
 
     function test_NonAdjacentLeavesAreRejected() public {
-        (Row[] memory rows, bytes32[] memory leaves, bytes32 root) = _epoch(HONEST);
+        (Row[] memory rows, bytes32[] memory leaves,) = _epoch(HONEST);
         vm.prank(poster);
         ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), _published(rows));
 
@@ -234,7 +234,7 @@ contract LadderTest is Test {
     // ── windows, counted in rounds and nothing else ──────────────────────────────────────────
 
     function test_CannotFinalizeWhileTheWindowIsOpen() public {
-        (Row[] memory rows,, bytes32 root) = _epoch(HONEST);
+        (Row[] memory rows,,) = _epoch(HONEST);
         vm.prank(poster);
         ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), _published(rows));
 
@@ -248,7 +248,7 @@ contract LadderTest is Test {
     /// someone watching, and the writeup says so rather than implying otherwise.
     function test_CannotDisproveAfterTheWindowCloses() public {
         uint256 at = 9;
-        (Row[] memory rows, bytes32[] memory leaves, bytes32 root) = _epoch(at);
+        (Row[] memory rows, bytes32[] memory leaves,) = _epoch(at);
         vm.prank(poster);
         ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), _published(rows));
 
@@ -294,7 +294,7 @@ contract LadderTest is Test {
     }
 
     function test_CannotPostTheSameEpochTwice() public {
-        (Row[] memory rows,, bytes32 root) = _epoch(HONEST);
+        (Row[] memory rows,,) = _epoch(HONEST);
         vm.prank(poster);
         ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), _published(rows));
 
@@ -313,7 +313,7 @@ contract LadderTest is Test {
     /// so nothing is stranded.
     function test_ARejectedEpochCanBeRepostedHonestly() public {
         uint256 at = 4;
-        (Row[] memory bad, bytes32[] memory badLeaves, bytes32 badRoot) = _epoch(at);
+        (Row[] memory bad, bytes32[] memory badLeaves,) = _epoch(at);
         vm.prank(poster);
         ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(bad), _published(bad));
 
@@ -325,7 +325,7 @@ contract LadderTest is Test {
         ladder.disproveTransition(_spec(), 0, prev, cur, signature);
         assertEq(uint8(_status(0)), uint8(Ladder.Status.Rejected));
 
-        (Row[] memory good,, bytes32 goodRoot) = _epoch(HONEST);
+        (Row[] memory good,,) = _epoch(HONEST);
         address honest = makeAddr("honestPoster");
         vm.deal(honest, 1 ether);
 
@@ -342,7 +342,7 @@ contract LadderTest is Test {
     /// @dev The stranded-bond bug this guards against: the contract must never hold more than the
     /// bonds it still owes.
     function test_NoBondIsEverStranded() public {
-        (Row[] memory rows,, bytes32 root) = _epoch(HONEST);
+        (Row[] memory rows,,) = _epoch(HONEST);
         vm.prank(poster);
         ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), _published(rows));
         assertEq(address(ladder).balance, BOND, "holding exactly one bond");
