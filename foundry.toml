@@ -34,7 +34,10 @@ invariant = { runs = 256, depth = 128, fail_on_revert = false }
 # a script that can write anywhere is a script that can rewrite its own source.
 # Read-only, and only the fixtures. Deployment records are written by
 # bin/record-deployment.py from the broadcast artifact, so no script needs write access.
-fs_permissions = [{access = "read", path = "./test/fixtures"}]
+fs_permissions = [
+    {access = "read", path = "./test/fixtures"},
+    {access = "read", path = "./demo"},
+]
 
 # NOT in the default profile, deliberately. `deny = "warnings"` makes a lint finding abort
 # `forge build` part-way, which leaves `out/` inconsistent — and a stale artifact directory has

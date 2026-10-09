@@ -15,7 +15,7 @@ DEPLOYER_ADDRESS ?= 0xc50f1FbD1c36a2305B257376eb2264C3bB6179e8
 RPC              ?= monad_testnet
 export GIT_COMMIT = $(shell git rev-parse --short HEAD)
 
-.PHONY: build test lint check measure-pairing measure-precompiles measure-storage measure-fee-model verify-round sample-verify-gas deploy-entropy prove-round deploy-registry open-rooms whoami-deployer deploy-probe measure-pairing-tx
+.PHONY: build test lint check measure-pairing measure-precompiles measure-storage measure-fee-model verify-round sample-verify-gas deploy-entropy prove-round deploy-registry open-rooms deploy-ladder demo-fraud-proof whoami-deployer deploy-probe measure-pairing-tx
 
 build:  ; forge build --sizes
 test:   ; forge test
@@ -118,6 +118,25 @@ open-rooms:
 	REGISTRY=$(REGISTRY) forge script script/OpenRooms.s.sol --rpc-url $(RPC) \
 	  --account $(DEPLOYER_ACCOUNT) --sender $(DEPLOYER_ADDRESS) \
 	  --gas-estimate-multiplier $(ROOMS_GAS_MULTIPLIER) --broadcast
+
+deploy-ladder:
+	@test -n "$(REGISTRY)" || (echo "usage: make deploy-ladder REGISTRY=0x..."; exit 1)
+	REGISTRY=$(REGISTRY) forge script script/DeployLadder.s.sol --rpc-url $(RPC) \
+	  --account $(DEPLOYER_ACCOUNT) --sender $(DEPLOYER_ADDRESS) --broadcast
+	$(PYTHON) bin/record-deployment.py broadcast/DeployLadder.s.sol/$(CHAIN_ID)/run-latest.json
+
+# GATE 3: post a knowingly dishonest checkpoint, then defeat it. Two transactions.
+#
+# 2.5x because the two have different shapes and the larger one is pairing-dominated: post is
+# storage-heavy (~1.3x) and disproveTransition verifies a beacon signature (~2.2x). Overpaying
+# the small one is cheaper than under-sizing the big one, which Monad bills in full either way.
+DEMO_GAS_MULTIPLIER ?= 250
+
+demo-fraud-proof:
+	@test -n "$(LADDER)" || (echo "usage: make demo-fraud-proof LADDER=0x..."; exit 1)
+	LADDER=$(LADDER) forge script script/DemoFraudProof.s.sol --rpc-url $(RPC) \
+	  --account $(DEPLOYER_ACCOUNT) --sender $(DEPLOYER_ADDRESS) \
+	  --gas-estimate-multiplier $(DEMO_GAS_MULTIPLIER) --broadcast
 
 # Confirms the keystore holds the funded address. Prompts for the password and prints an
 # address; it signs nothing and sends nothing.
