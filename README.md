@@ -45,6 +45,7 @@ Monad testnet (chain `10143`). Generated from `deployments/`, never hand-typed.
 | --- | --- | --- |
 | **`Entropy`** | [`0x09A00a27Cac602e777681F3242f4c7eFe989D4a7`](https://testnet.monadscan.com/address/0x09A00a27Cac602e777681F3242f4c7eFe989D4a7) | **beacon verification and the proven round floor** |
 | **`Registry`** | [`0xE583B914CF2d25fc278301b195aB090640b4eECA`](https://testnet.monadscan.com/address/0xE583B914CF2d25fc278301b195aB090640b4eECA) | **permissionless, content-addressed Room creation** |
+| **`Ladder`** | [`0x1bE27643FF478ef280a903831F0927ef68f4374c`](https://testnet.monadscan.com/address/0x1bE27643FF478ef280a903831F0927ef68f4374c) | **epoch commitments and the fraud proof** |
 | `GasProbe` | [`0x5222AC024a4D74435f943A889C111DBFe330215B`](https://testnet.monadscan.com/address/0x5222AC024a4D74435f943A889C111DBFe330215B) | measurement scaffolding, step 1.4 |
 | `StoragePageProbe` | [`0xc33056Af574168157a7D801Ab213cf1d4416dDc6`](https://testnet.monadscan.com/address/0xc33056Af574168157a7D801Ab213cf1d4416dDc6) | measurement scaffolding, step 1.5 |
 
@@ -54,6 +55,25 @@ above the proven floor, so none could have been parameterised against randomness
 existed.
 
 The two probes are measurement scaffolding, not protocol. Measurements: [`bench/`](bench/).
+
+## A liar lost their bond on this chain
+
+A checkpoint was posted whose price at one round was wrong by **a single unit — 10⁻¹⁸ of a price**,
+the smallest lie the encoding can express. It was then disproved and the bond forfeited.
+
+| | |
+| --- | --- |
+| Dishonest checkpoint posted | [`0xf8d67a3e…`](https://testnet.monadscan.com/tx/0xf8d67a3e6fb1e739c3d017bc58f4d2f8584bd00b3a6944c34b0e5d3422c69cb0) · 413,067 gas |
+| Disproved, bond forfeited | [`0x3b41ce34…`](https://testnet.monadscan.com/tx/0x3b41ce3409f4af0ddeaaaa517b087da3d771a764a033d97d99085c45d05f12b5) · 817,530 gas |
+| Checkpoint status now | `Rejected` · bond `0` · the Room did not advance |
+
+A lie of one unit is caught as decisively as a large one, because the contract asks whether the
+committed value **equals** the re-executed one, not whether it is close. That is what every
+rounding rule in `spec/` is for.
+
+The challenger posted **no bond**. The proof is one shot and atomic, so there is no interactive
+game to stall and nothing to punish — watching costs only gas, which is the property the design
+wants, since safety rests on somebody bothering to look.
 
 ## Verify it yourself
 

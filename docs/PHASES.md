@@ -162,9 +162,9 @@ artefact, none of them written to match the others.
 
 | # | Step | Done when | Commit |
 | --- | --- | --- | --- |
-| 5.1 | Merkle commitment over an epoch's ticks plus resulting state. Epoch sizing chosen against the calldata/event budget (no blobs on Monad) | Sizing decision recorded with its arithmetic | `feat(ladder): epoch merkle commitment` |
-| 5.2 | `postCheckpoint` with bond. Challenge window **measured in rounds above the proven floor**, never in seconds | Window cannot be advanced by a timestamp | `feat(ladder): checkpoint posting with round-denominated window` |
-| 5.3 | `finalize` — unchallenged checkpoints settle, callable by anyone, no privileged finalizer | Anyone can finalize; tests prove it | `feat(ladder): unattended finalization` |
+| 5.1 | Merkle commitment over an epoch's ticks plus resulting state. Epoch sizing chosen against the calldata/event budget (no blobs on Monad) | Sizing decision recorded with its arithmetic | `feat(ladder): epoch merkle commitment` ✅ |
+| 5.2 | `postCheckpoint` with bond. Challenge window **measured in rounds above the proven floor**, never in seconds | Window cannot be advanced by a timestamp | `feat(ladder): checkpoint posting with round-denominated window` ✅ |
+| 5.3 | `finalize` — unchallenged checkpoints settle, callable by anyone, no privileged finalizer | Anyone can finalize; tests prove it | `feat(ladder): unattended finalization` ✅ |
 | 5.4 | Poster bot (TS): gas limits from `bench/`, never padded; balance-headroom alarm; `included` and `executed` as separate states because Monad charges on `gas_limit` and executes asynchronously | Bot survives an induced under-funding without losing its place | `feat(ops): poster bot with measured gas limits and reserve monitoring` |
 | 5.5 | Multi-hour unattended run on testnet; log committed | **GATE 2b — checkpoints finalize unattended over hours, with no human at the keyboard** | `chore(ops): multi-hour unattended checkpoint run log` |
 
@@ -177,17 +177,30 @@ artefact, none of them written to match the others.
 
 | # | Step | Done when | Commit |
 | --- | --- | --- | --- |
-| 6.1 | Write the adversarial suite *before* the game: liar at the first tick, the last tick, the middle; random epoch sizes; poster who abandons the game; challenger who abandons; challenger at minimum stake; two challengers; griefing poster | Suite compiles and fails for the right reasons | `test(ladder): adversarial fraud-proof suite (failing)` |
-| 6.2 | Single-step challenge and terminal resolve via `Tick`. **This alone is the day-13 cut-line fallback** — build it first so the fallback exists from day 11 | Suite's single-step cases pass | `feat(ladder): single-step challenge and terminal resolve` |
+| 6.1 | Write the adversarial suite *before* the game: liar at the first tick, the last tick, the middle; random epoch sizes; poster who abandons the game; challenger who abandons; challenger at minimum stake; two challengers; griefing poster | Suite compiles and fails for the right reasons | `test(ladder): adversarial fraud-proof suite (failing)` ✅ |
+| 6.2 | Single-step challenge and terminal resolve via `Tick`. **This alone is the day-13 cut-line fallback** — build it first so the fallback exists from day 11 | Suite's single-step cases pass | `feat(ladder): single-step challenge and terminal resolve` ✅ |
 | 6.3 | Bisection: logarithmic narrowing to one disputed tick, with per-move deadlines in rounds | Narrowing terminates for any epoch size | `feat(ladder): bisection to a single disputed tick` |
-| 6.4 | Bond settlement: the winner takes it, timeouts resolve against whoever went silent | No path leaves a bond stranded | `feat(ladder): bond settlement and timeout resolution` |
-| 6.5 | Invariant fuzz: *a dishonest poster with any strategy loses to one honest challenger* | Invariant holds at high `runs`; terminal-step gas is affordable at the intended bond size | `test(ladder): invariant — dishonest poster loses to one honest challenger` |
+| 6.4 | Bond settlement: the winner takes it, timeouts resolve against whoever went silent | No path leaves a bond stranded | `feat(ladder): bond settlement and timeout resolution` ✅ |
+| 6.5 | Invariant fuzz: *a dishonest poster with any strategy loses to one honest challenger* | Invariant holds at high `runs`; terminal-step gas is affordable at the intended bond size | `test(ladder): invariant — dishonest poster loses to one honest challenger` ✅ |
 | 6.6 | **Live on testnet:** post a knowingly dishonest checkpoint, challenge it, defeat it, take the bond. Commit every tx hash | **GATE 3 — the liar lost their bond on a public chain, and we can link to it** | `feat(ladder): live testnet fraud proof with recorded tx hashes` → tag `gate-3` |
 
 **Cut line, end of day 13:** if 6.3–6.4 are not green, ship 6.2 and stop. Write the bisection design
 into the writeup as a stated known limitation. A clear limitation beats a vague claim.
 
 ---
+
+> **Gate 3 passed, 9 Oct.** `Ladder` at `0x1bE27643FF478ef280a903831F0927ef68f4374c`. A dishonest
+> checkpoint was posted (`0xf8d67a3e…`) and disproved (`0x3b41ce34…`) on Monad testnet; status is
+> `Rejected`, the bond was forfeited, and the Room did not advance. The lie was one unit of price.
+>
+> **No bisection, and no challenger bond** — not a cut-down version but a different and sounder
+> shape for this problem. A correct epoch is one where each leaf follows from the last, so naming
+> a failure is a *complete* disproof; bisection is only needed when a challenger cannot compute the
+> truth, and here they can. See the contract docs on `Ladder`.
+>
+> The live run had the same address on both sides. `make demo-post-lie` and `make demo-disprove`
+> now split it across two accounts for the submission video, because two unrelated addresses are
+> part of what the demonstration shows.
 
 ## Phase 7 — Conformance sweep and gas table · Day 14
 
