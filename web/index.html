@@ -167,7 +167,7 @@
   <section id="proof">
     <div class="wrap">
       <span class="eyebrow">Not a screenshot</span>
-      <h2 class="display-sm" style="margin:14px 0 36px">A liar lost their bond<br />on this chain</h2>
+      <h2 class="display-sm" style="margin:14px 0 36px">A liar lost their bond.<br />A bettor got paid.</h2>
 
       <div class="card" style="margin-bottom:28px">
         <p style="margin:0 0 20px;color:var(--dim)">
@@ -192,6 +192,36 @@
         </table>
       </div>
 
+      <div class="card" style="margin-bottom:28px">
+        <span class="eyebrow">And the other half</span>
+        <p style="margin:12px 0 20px;color:var(--dim)">
+          Two accounts staked opposite sides of a window, and settlement was
+          <strong style="color:var(--text)">shown</strong> the opening and closing prices with Merkle
+          paths into a batch the ladder had already finalised. No oracle was asked. A batch still
+          inside its challenge window is refused outright, so a payout cannot rest on a number the
+          fraud proof might still overturn.
+        </p>
+        <table>
+          <tr>
+            <td>Settled against two proven prices</td>
+            <td><a href="https://testnet.monadscan.com/tx/0xb747af552590e928d1b888031eac6326a3095ff738e9777cef393cfd735d5c92" target="_blank" rel="noreferrer">0xb747af55…</a></td>
+          </tr>
+          <tr>
+            <td>Winner paid out</td>
+            <td><a href="https://testnet.monadscan.com/tx/0x533c173dfdb8bf33aa4e69d835e05d6f1babeb17e9130bbd74487df2c0309407" target="_blank" rel="noreferrer">0x533c173d…</a></td>
+          </tr>
+          <tr>
+            <td>Staked 0.02, received</td>
+            <td><span class="badge">0.0495 MON</span></td>
+          </tr>
+        </table>
+        <p style="margin:20px 0 0;color:var(--dim);font-size:14px">
+          The 1% rake was credited to the Room's creator rather than sent — a creator whose address
+          reverts on receipt must not be able to freeze everybody else's settlement. One market, two
+          accounts, five hundredths of a MON. The mechanism is proven; the volume is nothing.
+        </p>
+      </div>
+
       <div class="cols cols-3">
         <div>
           <div class="stat">20,000</div>
@@ -203,7 +233,7 @@
         </div>
         <div>
           <div class="stat">0</div>
-          <div class="stat-label">calls to the blockchain needed to compute a chart</div>
+          <div class="stat-label">calls to the blockchain needed to compute a chart, and zero oracles in the settlement path</div>
         </div>
       </div>
 

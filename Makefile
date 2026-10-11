@@ -201,6 +201,24 @@ market-settle:
 	  --gas-limit $(or $(SETTLE_GAS),420000) --rpc-url $(RPC) \
 	  --account $(or $(ACCOUNT),$(DEPLOYER_ACCOUNT)) --from $(or $(FROM),$(DEPLOYER_ADDRESS))
 
+# Reads the settled round back out of the chain. Free: eth_call only, no key, no password.
+#
+# Defaults point at the round settled on 11 October 2026, so this works with no arguments and is
+# the quickest way to check the claim in the README against the chain rather than against us.
+MARKET_ADDR   ?= 0xBa0614A04243d037A4e05F901eB30C75079d1c9D
+MARKET_ID     ?= 0xe02fe3bd51b1acd2a3b98be579cefaba120250ed98aef26c31df0558358abf77
+CHALLENGER_ADDRESS ?= 0x2E355b544488a68f1A9dec41Ffc4e77ac334dEE4
+
+print-market-values:
+	@M=$(or $(MARKET),$(MARKET_ADDR)); I=$(or $(ID),$(MARKET_ID)); \
+	cast call $$M "books(bytes32)(bytes32,uint64,uint64,uint128,uint128,uint128,uint8,uint8)" $$I \
+	  --rpc-url $(RPC) --json > /tmp/croom-book.json; \
+	BAL=$$(cast balance $$M --rpc-url $(RPC)); \
+	RAKE=$$(cast call $$M "rakeOwed(address)(uint256)" $(DEPLOYER_ADDRESS) --rpc-url $(RPC) --json); \
+	A=$$(cast call $$M "claimed(bytes32,address)(bool)" $$I $(DEPLOYER_ADDRESS) --rpc-url $(RPC) --json); \
+	B=$$(cast call $$M "claimed(bytes32,address)(bool)" $$I $(CHALLENGER_ADDRESS) --rpc-url $(RPC) --json); \
+	M=$$M I=$$I BAL=$$BAL RAKE=$$RAKE A=$$A B=$$B $(PYTHON) bin/print-market.py
+
 # A complete parimutuel round: honest epoch, finalise, open, stake, settle, claim.
 #
 # The floor has to land between the challenge window and the market's first round -- proving the
