@@ -19,7 +19,7 @@ DEPLOYER_ADDRESS ?= 0xc50f1FbD1c36a2305B257376eb2264C3bB6179e8
 RPC              ?= monad_testnet
 export GIT_COMMIT = $(shell git rev-parse --short HEAD)
 
-.PHONY: build test lint check measure-pairing measure-precompiles measure-storage measure-fee-model verify-round sample-verify-gas deploy-entropy prove-round deploy-registry open-rooms deploy-ladder deploy-market web demo-post-lie demo-disprove demo-market-setup demo-market-join demo-market-settle demo-market-claim fund-challenger whoami-deployer deploy-probe measure-pairing-tx
+.PHONY: build test lint check measure-pairing measure-precompiles measure-storage measure-fee-model verify-round sample-verify-gas deploy-entropy prove-round deploy-registry open-rooms deploy-ladder deploy-market web demo-post-lie demo-disprove demo-market-setup demo-market-join demo-market-settle demo-market-claim market-advance-floor market-finalize market-settle fund-challenger whoami-deployer deploy-probe measure-pairing-tx
 
 build:  ; forge build --sizes
 test:   ; forge test
@@ -168,6 +168,38 @@ deploy-market:
 web:
 	$(PYTHON) bin/gen-addresses.py
 	cd web && npm install --silent && npm run build
+
+# ── the live market round, one measured step at a time ───────────────────────────────────────
+#
+# Not one script with a blanket multiplier. A 2.5x multiplier on forge's Ethereum-priced estimate
+# under-funded proveRound by 137,000 gas and killed three transactions in a single broadcast --
+# the exact failure bench/gas-estimation.md warns about. Every limit below is measured with
+# eth_estimateGas against the deployed contract.
+#
+# Regenerate the calldata after any contract change:
+#   MARKET=0x... forge script script/PrintMarketValues.s.sol --rpc-url $(RPC)
+
+ENTROPY_ADDR ?= 0x09A00a27Cac602e777681F3242f4c7eFe989D4a7
+FLOOR_ROUND  ?= 21180000
+
+# Measured 657,015. The limit is the price on Monad, so the margin is small and deliberate.
+market-advance-floor:
+	@SIG=$$($(PYTHON) -c "import json;print(json.load(open('demo/floor-round.json'))['signatures'][0])"); \
+	cast send $(ENTROPY_ADDR) "proveRound(uint64,bytes)" $(FLOOR_ROUND) 0x$$SIG \
+	  --gas-limit $(or $(PROVE_GAS),720000) --rpc-url $(RPC) \
+	  --account $(DEPLOYER_ACCOUNT) --from $(DEPLOYER_ADDRESS)
+
+market-finalize:
+	@test -n "$(LADDER)" || (echo "usage: make market-finalize LADDER=0x..."; exit 1)
+	cast send $(LADDER) $$(cat demo/finalize.calldata) \
+	  --gas-limit $(or $(FINALIZE_GAS),260000) --rpc-url $(RPC) \
+	  --account $(DEPLOYER_ACCOUNT) --from $(DEPLOYER_ADDRESS)
+
+market-settle:
+	@test -n "$(MARKET)" || (echo "usage: make market-settle MARKET=0x..."; exit 1)
+	cast send $(MARKET) $$(cat demo/settle.calldata) \
+	  --gas-limit $(or $(SETTLE_GAS),420000) --rpc-url $(RPC) \
+	  --account $(or $(ACCOUNT),$(DEPLOYER_ACCOUNT)) --from $(or $(FROM),$(DEPLOYER_ADDRESS))
 
 # A complete parimutuel round: honest epoch, finalise, open, stake, settle, claim.
 #
