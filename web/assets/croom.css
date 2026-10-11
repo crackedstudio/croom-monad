@@ -1,0 +1,295 @@
+/*
+ * Croom design system.
+ *
+ * Brutalist spine — exposed structure, hard rules, zero radius, monospace labels, oversized
+ * display type — carrying the Metropolis vocabulary: near-black ground, faint grid, wide-tracked
+ * uppercase tags, film grain, a sticky action bar.
+ *
+ * Restraint is deliberate. This is market infrastructure whose whole claim is that it can be
+ * checked, and a page that shouts undermines the claim it is making. One accent colour; the
+ * gradient appears once, in the hero, and nowhere else.
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap");
+
+:root {
+  --ink: #09090b;
+  --ink-2: #0e0e12;
+  --panel: #111116;
+  --rule: #26262e;
+  --rule-bright: #3a3a46;
+  --text: #ededf0;
+  --dim: #8b8b96;
+  --dimmer: #5c5c66;
+
+  --accent: #8b7cff;
+  --accent-ink: #09090b;
+  --good: #5ddc8a;
+  --bad: #ff5c5c;
+  --warn: #e8c15a;
+
+  --display: "Chakra Petch", ui-sans-serif, system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+
+  --gutter: clamp(16px, 4vw, 48px);
+  --max: 1200px;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--text);
+  font: 400 16px/1.6 var(--body);
+  overflow-x: hidden;
+}
+
+/* The grid is visible on purpose: the structure is the ornament. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    linear-gradient(to right, rgba(255,255,255,.028) 1px, transparent 1px) 0 0 / 80px 100%,
+    linear-gradient(to bottom, rgba(255,255,255,.028) 1px, transparent 1px) 0 0 / 100% 80px;
+}
+
+/* Film grain, lifted from the Metropolis artwork. Low enough to feel like print, not noise. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: -50%;
+  pointer-events: none;
+  z-index: 1;
+  opacity: .035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.shell { position: relative; z-index: 2; }
+.wrap { max-width: var(--max); margin: 0 auto; padding: 0 var(--gutter); }
+
+/* ── type ────────────────────────────────────────────────────────────────────────────────── */
+
+h1, h2, h3 { font-family: var(--display); font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+
+.display {
+  font-family: var(--display);
+  font-weight: 700;
+  text-transform: uppercase;
+  line-height: .92;
+  letter-spacing: -0.02em;
+  font-size: clamp(42px, 9vw, 116px);
+}
+
+.display-sm {
+  font-family: var(--display);
+  font-weight: 700;
+  text-transform: uppercase;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  font-size: clamp(26px, 4.4vw, 52px);
+}
+
+.tag {
+  display: inline-block;
+  font: 500 11px/1 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .18em;
+  color: var(--dim);
+  border: 1px solid var(--rule);
+  padding: 7px 11px;
+}
+
+.eyebrow {
+  font: 500 11px/1 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .2em;
+  color: var(--dimmer);
+}
+
+.lede { font-size: clamp(17px, 2vw, 21px); color: var(--dim); max-width: 62ch; }
+
+.mono { font-family: var(--mono); font-size: 13px; word-break: break-all; }
+
+a { color: var(--accent); text-decoration: none; border-bottom: 1px solid rgba(139,124,255,.35); }
+a:hover { border-bottom-color: var(--accent); }
+
+/* ── structure ───────────────────────────────────────────────────────────────────────────── */
+
+.rule { border: 0; border-top: 1px solid var(--rule); margin: 0; }
+.rule-heavy { border: 0; border-top: 2px solid var(--rule-bright); margin: 0; }
+
+section { padding: clamp(56px, 9vw, 112px) 0; }
+
+.cols { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+.cols > * { background: var(--ink); padding: clamp(20px, 3vw, 32px); }
+@media (min-width: 760px) { .cols-3 { grid-template-columns: repeat(3, 1fr); } .cols-2 { grid-template-columns: repeat(2, 1fr); } }
+
+.card { border: 1px solid var(--rule); background: var(--ink-2); padding: clamp(20px, 3vw, 30px); }
+
+.stat { font-family: var(--mono); font-weight: 700; font-size: clamp(28px, 4vw, 44px); line-height: 1; }
+.stat-label { font: 500 11px/1.4 var(--mono); text-transform: uppercase; letter-spacing: .16em; color: var(--dimmer); margin-top: 10px; }
+
+/* ── controls ────────────────────────────────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-block;
+  font: 500 13px/1 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  padding: 16px 24px;
+  border: 1px solid var(--rule-bright);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  border-radius: 0;
+}
+.btn:hover { border-color: var(--text); background: rgba(255,255,255,.04); }
+.btn-primary { background: var(--text); color: var(--accent-ink); border-color: var(--text); font-weight: 700; }
+.btn-primary:hover { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+
+.badge {
+  display: inline-block;
+  font: 700 10px/1 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  padding: 6px 9px;
+  border: 1px solid currentColor;
+}
+.badge.good { color: var(--good); }
+.badge.bad { color: var(--bad); }
+.badge.warn { color: var(--warn); }
+.badge.dim { color: var(--dimmer); }
+
+/* ── nav and sticky bar ──────────────────────────────────────────────────────────────────── */
+
+.nav {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px var(--gutter);
+  border-bottom: 1px solid var(--rule);
+  background: rgba(9,9,11,.82);
+  backdrop-filter: blur(8px);
+}
+.nav-mark { font-family: var(--display); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: 17px; border: 0; color: var(--text); }
+.nav-links { display: flex; gap: 22px; align-items: center; }
+.nav-links a { font: 500 11px/1 var(--mono); text-transform: uppercase; letter-spacing: .16em; color: var(--dim); border: 0; }
+.nav-links a:hover { color: var(--text); }
+
+/* Anchored right rather than centred: the Metropolis dock sits mid-screen over sparse artwork,
+   and over a dense column of prose it simply covers the words. */
+.dock {
+  position: fixed; right: var(--gutter); bottom: 20px;
+  z-index: 30; display: flex; align-items: stretch;
+  border: 1px solid var(--rule-bright); background: rgba(14,14,18,.94);
+  backdrop-filter: blur(10px);
+}
+.dock span { font: 500 11px/1 var(--mono); text-transform: uppercase; letter-spacing: .16em; color: var(--dim); padding: 0 18px; display: flex; align-items: center; }
+.dock .btn { border: 0; border-left: 1px solid var(--rule-bright); padding: 14px 20px; }
+
+/* ── tables ──────────────────────────────────────────────────────────────────────────────── */
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+td, th { padding: 11px 0; border-bottom: 1px solid var(--rule); text-align: left; }
+th { font: 500 10px/1 var(--mono); text-transform: uppercase; letter-spacing: .16em; color: var(--dimmer); }
+td:last-child, th:last-child { text-align: right; font-family: var(--mono); }
+tr:last-child td { border-bottom: 0; }
+
+/* ── prose, for articles ─────────────────────────────────────────────────────────────────── */
+
+.prose { max-width: 68ch; }
+.prose h2 { font-size: clamp(22px, 3vw, 30px); margin: 52px 0 14px; text-transform: uppercase; letter-spacing: 0; }
+.prose h3 { font-size: 18px; margin: 34px 0 10px; font-family: var(--body); font-weight: 600; }
+.prose p { margin: 0 0 18px; }
+.prose ul, .prose ol { margin: 0 0 18px; padding-left: 20px; }
+.prose li { margin-bottom: 8px; }
+.prose code { font-family: var(--mono); font-size: .88em; background: var(--panel); border: 1px solid var(--rule); padding: 2px 5px; }
+.prose pre {
+  font-family: var(--mono); font-size: 12.5px; line-height: 1.6;
+  background: var(--ink-2); border: 1px solid var(--rule);
+  padding: 18px; overflow-x: auto; margin: 0 0 22px;
+}
+.prose pre code { background: none; border: 0; padding: 0; }
+.prose blockquote {
+  margin: 0 0 22px; padding: 2px 0 2px 20px;
+  border-left: 2px solid var(--accent); color: var(--dim);
+}
+.prose table { margin-bottom: 22px; }
+.prose strong { color: #fff; font-weight: 600; }
+
+.footer { border-top: 1px solid var(--rule); padding: 40px 0 120px; color: var(--dimmer); font-size: 13px; }
+
+@media (max-width: 759px) {
+  .nav-links { gap: 14px; }
+  .nav-links .hide-sm { display: none; }
+  .dock { left: var(--gutter); right: var(--gutter); }
+  .dock span { display: none; }
+  .dock .btn { flex: 1; text-align: center; border-left: 0; }
+}
+
+/* ── app vocabulary ──────────────────────────────────────────────────────────────────────── */
+/*
+ * The application renders its own markup from TypeScript, using class names that predate this
+ * system. Mapping them here keeps one stylesheet and one visual language rather than two, and
+ * avoids a rename that would touch rendering code the day before a freeze.
+ */
+
+.panel {
+  background: var(--ink-2);
+  border: 1px solid var(--rule);
+  padding: clamp(18px, 2.4vw, 26px);
+  margin-bottom: 18px;
+}
+
+.row { display: flex; flex-wrap: wrap; gap: 18px; }
+.row > .panel { flex: 1 1 260px; margin-bottom: 0; }
+
+.label {
+  font: 500 10px/1 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .18em;
+  color: var(--dimmer);
+  margin-bottom: 10px;
+}
+
+.big { font-family: var(--mono); font-weight: 700; font-size: clamp(22px, 3vw, 30px); line-height: 1; }
+
+.note { color: var(--dim); font-size: 13.5px; margin-top: 10px; line-height: 1.55; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 18px; }
+
+select {
+  background: var(--ink);
+  color: var(--text);
+  border: 1px solid var(--rule-bright);
+  border-radius: 0;
+  padding: 13px 14px;
+  font: 500 12px/1 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+button.primary { background: var(--text); color: var(--accent-ink); border: 1px solid var(--text); font-weight: 700; }
+button.primary:hover { background: var(--accent); border-color: var(--accent); }
+
+#app button {
+  font: 500 12px/1 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  padding: 13px 18px;
+  border: 1px solid var(--rule-bright);
+  background: transparent;
+  color: var(--text);
+  border-radius: 0;
+  cursor: pointer;
+}
+#app button:hover { border-color: var(--text); }
+
+/* The chart carries the one gradient the system allows outside the hero. */
+#app svg { border: 1px solid var(--rule); background: var(--ink); }

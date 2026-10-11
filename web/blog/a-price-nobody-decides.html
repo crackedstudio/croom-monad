@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>A price nobody decides — Croom</title>
+<meta name="description" content="How a global lottery, some school algebra, and one stubborn rule about rounding add up to a market nobody can fix." />
+<link rel="stylesheet" href="../assets/croom.css" />
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-mark" href="../">Croom</a>
+  <div class="nav-links">
+    <a href="./">Writing</a>
+    <a href="../#proof" class="hide-sm">Proof</a>
+    <a href="../app/">Open app</a>
+  </div>
+</nav>
+
+<div class="shell">
+  <section style="padding-bottom:28px">
+    <div class="wrap">
+      <span class="tag">Plain language · 9 min</span>
+      <h1 class="display" style="margin:26px 0 20px;font-size:clamp(36px,6.5vw,76px)">A price<br />nobody decides</h1>
+      <p class="lede">
+        There is a global lottery that publishes an unriggable random number every three seconds.
+        This is how you turn that into a price chart that behaves like a market — and why one
+        stubborn rule about rounding turns out to be holding the whole idea up.
+      </p>
+    </div>
+  </section>
+
+  <hr class="rule-heavy" />
+
+  <section>
+    <div class="wrap prose">
+
+      <h2>The problem with every price you have seen</h2>
+
+      <p>
+        If you have ever traded a synthetic index — the ones brokers offer that go up and down like
+        a stock but are not attached to anything — you have trusted somebody. The broker generates
+        the price. The broker sets the odds. The broker takes the other side of your bet. You
+        cannot check any of it, and the three roles sit in the same building.
+      </p>
+
+      <p>
+        That is not necessarily fraud. It is just unverifiable, which in practice is the same thing
+        from where you are sitting.
+      </p>
+
+      <p>
+        Croom separates those roles completely, and the way it does it is the interesting part.
+      </p>
+
+      <h2>The lottery</h2>
+
+      <p>
+        There is a thing called <strong>drand</strong>, run by a group of independent organisations
+        — universities, companies, research labs — who between them publish a random number every
+        three seconds. No single member can control the output. They have been doing it
+        continuously for years, and every number they have ever published is still retrievable by
+        anyone, for free, forever.
+      </p>
+
+      <p>
+        It is unpredictable before it is published and permanent afterwards. Those two properties
+        are the entire foundation.
+      </p>
+
+      <blockquote>
+        A Croom price is unguessable <em>before</em> the draw and reproducible by anyone
+        <em>after</em> it. That is the resolution to what sounds like a contradiction: how can
+        something be both unpredictable and verifiable?
+      </blockquote>
+
+      <h2>From a random number to a price</h2>
+
+      <p>
+        A Room is a recipe. It takes the lottery numbers and turns them into a price path. The
+        recipe is fixed when the Room is created and can never change — not by its creator, not by
+        us, not by anyone — because the Room's name <em>is</em> a fingerprint of its recipe. Change
+        a single parameter and you have made a different Room, not edited an existing one.
+      </p>
+
+      <p>
+        So the question becomes: what is a good recipe? And that is where it stops being a
+        blockchain problem and starts being an arithmetic one.
+      </p>
+
+      <h2>Why computers cannot be trusted with decimals</h2>
+
+      <p>
+        Open a browser console and type <code>0.1 + 0.2</code>. You will get
+        <code>0.30000000000000004</code>.
+      </p>
+
+      <p>
+        That is not a bug. One tenth has no exact representation in binary, in the same way one
+        third has no exact representation in decimal. The error is tiny. It is also dependent on
+        the order you did the operations in, and it can differ between machines.
+      </p>
+
+      <p>
+        For us, tiny is fatal. Two people recomputing the same chart have to agree on
+        <strong>every digit</strong>, or the claim collapses. So there are no decimals anywhere in
+        Croom. A price is a whole number of hundred-quintillionths — every value is multiplied by
+        10<sup>18</sup> and stored as an integer. One pound is stored as
+        <code>1000000000000000000</code>.
+      </p>
+
+      <p>
+        Integer arithmetic is exact and identical everywhere. Problem solved, except for one thing.
+      </p>
+
+      <h2>The rounding rule that everything hangs on</h2>
+
+      <p>
+        Multiplying two of those scaled numbers overshoots, so you have to divide back down — and
+        that division almost never comes out even. Something must be thrown away, and the rule is:
+        delete the leftover, whichever side of zero you are on.
+      </p>
+
+      <pre><code> 7 / 2  =  3        -7 / 2  = -3</code></pre>
+
+      <p>
+        Note that <code>-7 / 2</code> is <code>-3</code>, not <code>-4</code>. That is
+        <em>toward zero</em>, not <em>downward</em>. It makes no difference whatsoever to positive
+        numbers, which is precisely what makes it dangerous: a test suite that only uses rising
+        prices passes either way.
+      </p>
+
+      <p>
+        Python, as it happens, rounds the other direction. So a tool written in Python to generate
+        the expected answers would disagree with the contract on every negative intermediate value
+        — and <em>only</em> on negative ones. It would look correct for weeks.
+      </p>
+
+      <h2>Bending flat randomness into a bell</h2>
+
+      <p>
+        The lottery gives you numbers that are uniformly random: every value equally likely. Real
+        prices do not move like that. Small moves are common, big moves are rare, enormous moves
+        are very rare. That shape is the bell curve.
+      </p>
+
+      <p>
+        So we need to bend a flat draw into a bell-shaped one, and the trick for doing it is lovely.
+      </p>
+
+      <p>
+        Write down the function that answers <em>what is the probability a bell-curve draw comes
+        out below x?</em> It climbs from 0 to 1:
+      </p>
+
+      <table>
+        <tr><th>x</th><th>probability of landing below</th></tr>
+        <tr><td>−2</td><td>0.023</td></tr>
+        <tr><td>−1</td><td>0.159</td></tr>
+        <tr><td>0</td><td>0.500</td></tr>
+        <tr><td>+1</td><td>0.841</td></tr>
+        <tr><td>+2</td><td>0.977</td></tr>
+      </table>
+
+      <p>
+        Now run it <strong>backwards</strong>. Feed it a flat random number between 0 and 1 and ask
+        which <code>x</code> would have produced that probability. Do this with flat draws, and the
+        answers come out bell-curve distributed.
+      </p>
+
+      <p>
+        The reason is almost a tautology: a value lands below <code>x</code> exactly when the flat
+        draw lands below the probability of landing below <code>x</code> — which happens with
+        exactly that probability. Draws near one half map to small moves; the rare draws near the
+        edges map to the extremes. The flatness gets stretched at the ends and squashed in the
+        middle, and out comes a bell.
+      </p>
+
+      <p>
+        There is no tidy formula for running it backwards, so we use a published approximation from
+        1988 with forty-eight constants in it. They are data, not settings. One mistyped digit
+        leaves the middle of the distribution looking perfectly sensible and corrupts only the
+        extremes — which is exactly where a price chart spends its interesting moments.
+      </p>
+
+      <h2>Why time enters as a square root</h2>
+
+      <p>
+        Volatility is quoted per year. Our prices move every three seconds. How much should a price
+        move in three seconds if it moves 75% in a year?
+      </p>
+
+      <p>
+        The tempting answer is to divide by the number of three-second intervals in a year. That is
+        wrong, and the reason is worth a moment.
+      </p>
+
+      <p>
+        Flip a coin a hundred times, scoring +1 for heads and −1 for tails. How far from zero do you
+        typically end up? Not a hundred — the ups and downs cancel. Not one either. The answer is
+        about <strong>ten</strong>, which is the square root of a hundred.
+      </p>
+
+      <p>
+        That is the general rule: when you add up independent random moves, their <em>squared</em>
+        sizes add, not their sizes. So the typical total grows like the square root of the number of
+        steps — and to go from a year to three seconds you divide by the square root of the number
+        of steps, not the number itself.
+      </p>
+
+      <p>
+        There are 10,512,000 three-second rounds in a year. The square root of that is about 3,242.
+        So 75% a year works out at roughly <strong>0.0231% per round</strong>.
+      </p>
+
+      <h2>The subtle one: why a fair coin is not fair</h2>
+
+      <p>
+        Here is the part that surprised me most.
+      </p>
+
+      <p>
+        Prices move multiplicatively — a 1% move matters the same at £2 and at £10,000. The clean
+        way to handle multiplication is to work with logarithms, because logarithms turn multiplying
+        into adding. So instead of multiplying the price by a random factor, we add a random amount
+        to the price's logarithm and convert back.
+      </p>
+
+      <p>
+        Now: the random shock is symmetric. As likely to be +0.5 as −0.5. Surely that is fair?
+      </p>
+
+      <p>
+        It is not, and school algebra shows why. Adding <code>+s</code> to the logarithm multiplies
+        the price by some factor <code>u</code>. Adding <code>−s</code> multiplies it by
+        <code>1/u</code>. So a symmetric move in logarithm-land is a multiply by <code>u</code> or
+        by <code>1/u</code>, each equally likely. The average multiplier is:
+      </p>
+
+      <pre><code>(u + 1/u) / 2</code></pre>
+
+      <p>
+        Try <code>u = 1.1</code>: <code>(1.1 + 0.909) / 2 = 1.00454</code>. Bigger than one. Try
+        <code>u = 1.5</code>: <code>(1.5 + 0.667) / 2 = 1.083</code>. Bigger again.
+      </p>
+
+      <p>It is <em>always</em> bigger than one, and you can prove it in one line. Since any real number squared is at least zero:</p>
+
+      <pre><code>(√u − 1/√u)² ≥ 0
+u − 2 + 1/u  ≥ 0
+    u + 1/u  ≥ 2
+  (u + 1/u)/2 ≥ 1</code></pre>
+
+      <p>
+        with equality only when <code>u = 1</code>.
+      </p>
+
+      <p>
+        So a price driven by a perfectly symmetric shock <strong>drifts upward forever, for
+        free</strong>. That is not a market, it is a money printer, and anybody betting "up" would
+        win in the long run without taking a view on anything.
+      </p>
+
+      <p>
+        The fix is to subtract exactly enough to cancel it. The amount turns out to be half the
+        variance. In our numbers that correction is about 0.0000000268 against a typical move of
+        0.0059% — utterly negligible per tick, and over ten million ticks a year it is the
+        difference between a fair market and a rigged one.
+      </p>
+
+      <h2>What the blockchain is actually for</h2>
+
+      <p>
+        Notice how little of this has involved a blockchain. The prices are computed from public
+        data by a published recipe. Anyone can do it. We do it in your browser, and the page counts
+        its own network requests to prove it is not quietly fetching the answer from us.
+      </p>
+
+      <p>
+        So what is the chain for? Two things.
+      </p>
+
+      <p>
+        <strong>Proving the lottery numbers are real.</strong> Anyone can claim a random number came
+        from drand. The chain checks the cryptographic signature and records that the round exists.
+      </p>
+
+      <p>
+        <strong>Settling disagreements about money.</strong> If you and I have a bet on where the
+        price went, we need something neutral that can decide. The chain holds a short fingerprint
+        of a batch of prices, posted by somebody who put up a deposit saying it is correct. If it is
+        wrong, anyone who notices can prove it and take that deposit.
+      </p>
+
+      <p>
+        We have done exactly that, on purpose, in public. Somebody posted a batch where one price
+        was wrong by one unit — the eighteenth decimal place, the smallest lie the system can
+        express. Somebody else, who was told nothing, recomputed the batch from the public lottery,
+        found the value that did not follow, and proved it. The deposit changed hands.
+        <a href="../#proof">The transactions are there to look at.</a>
+      </p>
+
+      <p>
+        That is why the rounding rule matters so much. The contract does not ask whether a claimed
+        price is <em>close</em> to the right one. It asks whether it is <strong>equal</strong>. If
+        two honest implementations could disagree by one unit in the last place, a liar could always
+        claim to be an honest implementation that rounded differently — and there would be no way to
+        settle anything.
+      </p>
+
+      <p>
+        Exactness is not tidiness here. It is the whole security model.
+      </p>
+
+      <hr class="rule" style="margin:48px 0 32px" />
+
+      <p style="color:var(--dim);font-size:15px">
+        If you want the same material with the formulas written out, there is
+        <a href="https://github.com/crackedstudio/croom-core">a longer technical breakdown</a> in
+        the repository, and every number quoted here is asserted by a test so that this page cannot
+        drift away from the code.
+      </p>
+
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="wrap">
+      <a href="./">← All writing</a>
+    </div>
+  </footer>
+</div>
+
+<div class="dock">
+  <span>Live on Monad testnet</span>
+  <a class="btn btn-primary" href="../app/" style="border-bottom:0">Open app</a>
+</div>
+</body>
+</html>

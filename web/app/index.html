@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Croom on Monad</title>
+<link rel="stylesheet" href="../assets/croom.css" />
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-mark" href="../">Croom</a>
+    <div class="nav-links">
+      <a href="../#how">How it works</a>
+      <a href="../blog/">Writing</a>
+      <a href="../#proof" class="hide-sm">Proof</a>
+    </div>
+  </nav>
+
+  <div class="shell">
+    <div class="wrap" style="padding-top:40px;padding-bottom:140px">
+      <span class="tag">Live on Monad testnet</span>
+      <h1 class="display-sm" style="margin:18px 0 12px">The chart, computed here</h1>
+      <p class="lede" style="margin:0 0 36px">
+        Every price below is derived in your browser from the public randomness beacon, using the
+        same specification the contracts implement. Monad is consulted afterwards, only to ask
+        whether its commitment agrees.
+      </p>
+      <div id="app"></div>
+    </div>
+  </div>
+  <script type="module" src="../dist/bundle.js"></script>
+</body>
+</html>

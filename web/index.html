@@ -3,59 +3,286 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Croom on Monad</title>
-<style>
-  :root {
-    --bg: #0b0d10; --panel: #13171c; --line: #222932; --text: #e6e9ee;
-    --dim: #8b949e; --accent: #7aa2f7; --good: #56d364; --bad: #f85149; --warn: #e3b341;
-    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; background: var(--bg); color: var(--text);
-    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  }
-  .wrap { max-width: 1080px; margin: 0 auto; padding: 24px 16px 64px; }
-  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
-  .tagline { color: var(--dim); margin: 0 0 24px; }
-  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
-  .row { display: flex; flex-wrap: wrap; gap: 16px; }
-  .row > .panel { flex: 1 1 280px; margin-bottom: 0; }
-  .label { color: var(--dim); font-size: 12px; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 6px; }
-  .big { font-size: 20px; font-family: var(--mono); }
-  .mono { font-family: var(--mono); font-size: 13px; word-break: break-all; }
-  .badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
-  .badge.good { background: rgba(86,211,100,.14); color: var(--good); }
-  .badge.bad { background: rgba(248,81,73,.14); color: var(--bad); }
-  .badge.warn { background: rgba(227,179,65,.14); color: var(--warn); }
-  .badge.dim { background: rgba(139,148,158,.14); color: var(--dim); }
-  select, button {
-    background: #1b2027; color: var(--text); border: 1px solid var(--line);
-    border-radius: 7px; padding: 8px 12px; font: inherit; font-size: 14px;
-  }
-  button { cursor: pointer; }
-  button:hover:not(:disabled) { border-color: var(--accent); }
-  button:disabled { opacity: .45; cursor: default; }
-  button.primary { background: var(--accent); color: #0b0d10; border-color: var(--accent); font-weight: 600; }
-  a { color: var(--accent); }
-  svg { display: block; width: 100%; height: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  td { padding: 5px 0; border-bottom: 1px solid var(--line); }
-  td:last-child { text-align: right; font-family: var(--mono); }
-  tr:last-child td { border-bottom: none; }
-  .note { color: var(--dim); font-size: 13px; margin-top: 10px; }
-  .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
-</style>
+<title>Croom — markets nobody can rig</title>
+<meta name="description" content="Price series generated from public randomness. Nobody can influence a tick or see it before it exists, and anyone can recompute the whole history. Live on Monad." />
+<link rel="stylesheet" href="./assets/croom.css" />
 </head>
 <body>
-  <div class="wrap">
-    <h1>Croom on Monad</h1>
-    <p class="tagline">
-      Markets whose price nobody can rig &mdash; not even the person who created them.
-      This page computes the chart itself, from public randomness, in your browser.
-    </p>
-    <div id="app"></div>
+
+<nav class="nav">
+  <a class="nav-mark" href="./">Croom</a>
+  <div class="nav-links">
+    <a href="#how">How it works</a>
+    <a href="#proof">Proof</a>
+    <a href="./blog/" class="hide-sm">Writing</a>
+    <a href="./app/">Open app</a>
   </div>
-  <script type="module" src="./dist/bundle.js"></script>
+</nav>
+
+<div class="shell">
+
+  <!-- ── hero ──────────────────────────────────────────────────────────────────────────── -->
+  <section style="padding-top:clamp(48px,7vw,96px);padding-bottom:clamp(40px,6vw,72px)">
+    <div class="wrap">
+      <span class="tag">Live on Monad testnet · drand evmnet</span>
+
+      <h1 class="display" style="margin:26px 0 0">
+        Markets<br />nobody<br />can rig
+      </h1>
+
+      <div style="display:grid;gap:40px;grid-template-columns:1fr;margin-top:34px" class="hero-grid">
+        <div>
+          <p class="lede" style="margin:0 0 28px">
+            A Croom price is not quoted by anyone. It is <strong style="color:var(--text)">computed</strong>
+            from a public randomness beacon that signs a new value every three seconds — so nobody
+            can influence a tick, nobody can see one before it exists, and anyone can recompute the
+            entire history from public data.
+          </p>
+          <p class="lede" style="margin:0 0 32px">
+            Not even the person who created the market.
+          </p>
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <a class="btn btn-primary" href="./app/" style="border-bottom:0">Open the app</a>
+            <a class="btn" href="#how" style="border-bottom:0">How it works</a>
+          </div>
+        </div>
+
+        <!-- One gradient object, echoing the Metropolis solids. It appears once on the site. -->
+        <div aria-hidden="true" style="display:flex;align-items:center;justify-content:center;min-height:240px">
+          <svg viewBox="0 0 320 300" style="width:100%;max-width:340px">
+            <defs>
+              <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#8b7cff"/><stop offset=".5" stop-color="#e58bd4"/><stop offset="1" stop-color="#7ce8c0"/>
+              </linearGradient>
+              <linearGradient id="g2" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#5a4fd6"/><stop offset="1" stop-color="#2a2550"/>
+              </linearGradient>
+              <linearGradient id="g3" x1="1" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#b57cff"/><stop offset="1" stop-color="#4b3f9e"/>
+              </linearGradient>
+            </defs>
+            <!-- a stack: the beacon above, the commitment below -->
+            <path d="M160 24 L300 96 L160 168 L20 96 Z" fill="url(#g1)"/>
+            <path d="M20 96 L160 168 L160 268 L20 196 Z" fill="url(#g2)"/>
+            <path d="M300 96 L160 168 L160 268 L300 196 Z" fill="url(#g3)"/>
+            <path d="M160 24 L300 96 L160 168 L20 96 Z" fill="none" stroke="rgba(255,255,255,.22)"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rule-heavy" />
+
+  <!-- ── the three properties ──────────────────────────────────────────────────────────── -->
+  <section id="how">
+    <div class="wrap">
+      <span class="eyebrow">What a Room is</span>
+      <h2 class="display-sm" style="margin:14px 0 36px">Three properties,<br />and they define the product</h2>
+
+      <div class="cols cols-3">
+        <div>
+          <span class="badge dim">01</span>
+          <h3 style="margin:16px 0 10px;font-size:20px;text-transform:uppercase">Un-riggable</h3>
+          <p style="color:var(--dim);margin:0;font-size:15px">
+            The price process is fixed at creation and driven by randomness no party controls. A
+            Room's identity is the hash of its parameters, so changing one makes a different Room
+            rather than an edited one.
+          </p>
+        </div>
+        <div>
+          <span class="badge dim">02</span>
+          <h3 style="margin:16px 0 10px;font-size:20px;text-transform:uppercase">Un-ruggable</h3>
+          <p style="color:var(--dim);margin:0;font-size:15px">
+            No treasury. No liquidity pool to drain. No mint function, no owner keys, no pause.
+            There is nothing to pull, because there is nothing held.
+          </p>
+        </div>
+        <div>
+          <span class="badge dim">03</span>
+          <h3 style="margin:16px 0 10px;font-size:20px;text-transform:uppercase">Immortal</h3>
+          <p style="color:var(--dim);margin:0;font-size:15px">
+            A Room does not go to zero and does not stop. The beacon ticks every three seconds,
+            and the price follows it — whether or not anybody is watching.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rule" />
+
+  <!-- ── the mechanism ─────────────────────────────────────────────────────────────────── -->
+  <section>
+    <div class="wrap">
+      <span class="eyebrow">The mechanism</span>
+      <h2 class="display-sm" style="margin:14px 0 20px">The chain is never<br />told a price</h2>
+      <p class="lede" style="margin:0 0 40px">
+        Because a Croom price is a deterministic function of public data, the chain does not need to
+        be told one. It can be <em>shown</em> one, with proof, by whoever needs it. So the chain
+        stores commitments and a game that anyone can win if a commitment is wrong.
+      </p>
+
+      <div class="cols cols-2">
+        <div>
+          <span class="eyebrow">Step 01 — Entropy</span>
+          <p style="margin:12px 0 0;color:var(--dim);font-size:15px">
+            A beacon round is verified on chain with a single pairing check, raising a monotone
+            <strong style="color:var(--text)">proven floor</strong>: the highest round shown to
+            exist. Never a timestamp — a clock is an estimate of when a round existed, and the
+            floor is a proof that it does.
+          </p>
+        </div>
+        <div>
+          <span class="eyebrow">Step 02 — Registry</span>
+          <p style="margin:12px 0 0;color:var(--dim);font-size:15px">
+            Anyone opens a Room by submitting a spec. The chain keeps the hash and emits the body.
+            Immutability is structural, not promised: there is no field an administrator could
+            change, because the identifier <em>is</em> the content.
+          </p>
+        </div>
+        <div>
+          <span class="eyebrow">Step 03 — Ladder</span>
+          <p style="margin:12px 0 0;color:var(--dim);font-size:15px">
+            A poster commits a batch of prices as one 32-byte root, publishes every value, and puts
+            up a bond. Anyone who can show the batch is wrong takes that bond — in one transaction,
+            with no stake of their own.
+          </p>
+        </div>
+        <div>
+          <span class="eyebrow">Step 04 — Market</span>
+          <p style="margin:12px 0 0;color:var(--dim);font-size:15px">
+            Stake on a direction. Entry closes before the randomness that decides the outcome
+            exists. Participants face each other, the fee is one published percent, and the
+            protocol never takes a side.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rule" />
+
+  <!-- ── proof ─────────────────────────────────────────────────────────────────────────── -->
+  <section id="proof">
+    <div class="wrap">
+      <span class="eyebrow">Not a screenshot</span>
+      <h2 class="display-sm" style="margin:14px 0 36px">A liar lost their bond<br />on this chain</h2>
+
+      <div class="card" style="margin-bottom:28px">
+        <p style="margin:0 0 20px;color:var(--dim)">
+          A checkpoint was posted whose price at one round was wrong by
+          <strong style="color:var(--text)">a single unit — 10<sup>-18</sup> of a price</strong>,
+          the smallest lie the encoding can express. A second address, told nothing, re-derived the
+          batch from the public beacon, found the value that does not follow, and proved it.
+        </p>
+        <table>
+          <tr>
+            <td>Dishonest checkpoint posted</td>
+            <td><a href="https://testnet.monadscan.com/tx/0xfbdb310100786244885e913ce66aedbb591ea802ba587f5c03b6b17e3f947027" target="_blank" rel="noreferrer">0xfbdb3101…</a></td>
+          </tr>
+          <tr>
+            <td>Disproved, bond forfeited</td>
+            <td><a href="https://testnet.monadscan.com/tx/0x35b60b28ae9480a74b364f57ae80b975911f99d7cc1731dd7410a21a8bd713cf" target="_blank" rel="noreferrer">0x35b60b28…</a></td>
+          </tr>
+          <tr>
+            <td>Result</td>
+            <td><span class="badge bad">rejected</span></td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="cols cols-3">
+        <div>
+          <div class="stat">20,000</div>
+          <div class="stat-label">rounds reproduced bit-for-bit against a Rust implementation written first</div>
+        </div>
+        <div>
+          <div class="stat">50</div>
+          <div class="stat-label">Rooms live, spanning the full permitted parameter range</div>
+        </div>
+        <div>
+          <div class="stat">0</div>
+          <div class="stat-label">calls to the blockchain needed to compute a chart</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:28px">
+        <span class="eyebrow">Check one yourself</span>
+        <p style="margin:12px 0 16px;color:var(--dim);font-size:15px">
+          Round 21,173,055 was proven on Monad and the contract emitted this randomness. Reproduce
+          it from the public beacon without asking us for anything:
+        </p>
+        <pre style="font-family:var(--mono);font-size:12px;background:var(--ink);border:1px solid var(--rule);padding:16px;overflow-x:auto;margin:0"><code>curl -s https://api.drand.sh/v2/chains/04f1e906…/rounds/21173055 \
+  | python3 -c 'import sys,json,hashlib; print(hashlib.sha256(bytes.fromhex(json.load(sys.stdin)["signature"])).hexdigest())'
+
+0x0a53345742bad1bdfc2064519f95dfe41bd3044ca9f64d8ed4cbef0c27a6f3e4</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rule" />
+
+  <!-- ── writing ───────────────────────────────────────────────────────────────────────── -->
+  <section>
+    <div class="wrap">
+      <span class="eyebrow">Writing</span>
+      <h2 class="display-sm" style="margin:14px 0 36px">In plain language,<br />and in detail</h2>
+
+      <div class="cols cols-2">
+        <a href="./blog/a-price-nobody-decides.html" style="border:0;color:inherit;display:block">
+          <span class="badge dim">Plain language</span>
+          <h3 style="margin:16px 0 10px;font-size:21px;text-transform:uppercase;font-family:var(--display)">A price nobody decides</h3>
+          <p style="color:var(--dim);margin:0;font-size:15px">
+            How a global lottery, a bit of school algebra and one stubborn rule about rounding add
+            up to a market that cannot be fixed. No code, no jargon.
+          </p>
+        </a>
+        <a href="./blog/we-nearly-broke-our-own-fraud-proof.html" style="border:0;color:inherit;display:block">
+          <span class="badge dim">Technical</span>
+          <h3 style="margin:16px 0 10px;font-size:21px;text-transform:uppercase;font-family:var(--display)">We nearly broke our own fraud proof</h3>
+          <p style="color:var(--dim);margin:0;font-size:15px">
+            We replaced an interactive bisection game with a one-shot disproof, kept the
+            completeness argument, and removed the thing that made its premise true.
+          </p>
+        </a>
+      </div>
+
+      <p style="margin-top:28px"><a href="./blog/">All writing →</a></p>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="wrap">
+      <div style="display:flex;flex-wrap:wrap;gap:28px;justify-content:space-between;align-items:baseline">
+        <div>
+          <div class="nav-mark" style="font-size:20px">Croom</div>
+          <div style="margin-top:6px">Market infrastructure derived from public randomness.</div>
+        </div>
+        <div style="font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:.14em">
+          <a href="./app/">App</a> &nbsp;·&nbsp;
+          <a href="./blog/">Writing</a> &nbsp;·&nbsp;
+          <a href="https://testnet.monadscan.com/address/0x1fa152836d8a5E6a0E5db8E2E811089ceE26025d" target="_blank" rel="noreferrer">Contracts</a>
+        </div>
+      </div>
+      <p style="margin-top:28px;font-size:12px;max-width:70ch">
+        Testnet only. Markets take a published 1% fee on volume, which participants pay in
+        aggregate — this is not a positive-expectation venue, and the interface says so rather
+        than burying it.
+      </p>
+    </div>
+  </footer>
+</div>
+
+<div class="dock">
+  <span>Live on Monad testnet</span>
+  <a class="btn btn-primary" href="./app/" style="border-bottom:0">Open app</a>
+</div>
+
+<style>
+  @media (min-width: 900px) {
+    .hero-grid { grid-template-columns: 1.25fr .75fr !important; align-items: center; }
+  }
+</style>
 </body>
 </html>
