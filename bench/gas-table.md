@@ -21,7 +21,10 @@ estimates.
 | `Registry` | `openRoom` | 77,709 | 0.0080 MON | `eth_estimateGas` |
 | `Ladder` | `post` (20 leaves published) | 209,976 | 0.0216 MON | `eth_estimateGas` |
 | `Ladder` | `disproveTransition` | 817,520 ⚠️ | 0.0850 MON | live transaction, **billed** |
+| `Ladder` | `finalize` | 260,000 ⚠️ | 0.0268 MON | live transaction, **billed** |
 | `Market` | `open` | 130,338 | 0.0134 MON | `eth_estimateGas` |
+| `Market` | `enter` | 84,331 | 0.0087 MON | `eth_estimateGas` |
+| `Market` | `settle` (two Merkle-proven prices) | 133,118 | 0.0137 MON | `eth_estimateGas` |
 
 ⚠️ `disproveTransition` is the one figure that is a billed limit rather than an execution cost. A
 disproof only estimates against a **pending** checkpoint, and the one on this deployment is already
@@ -92,6 +95,25 @@ The reference verifies hash-to-curve with **witnesses** because Solana's `sol_bi
 stub and a real modular exponentiation would cost over 1M CU. On Monad the precompile works, so the
 EVM port needs no witness machinery at all — the same protocol, with the host chain deciding how
 hard the cryptography is to land.
+
+## The cost of a complete market round
+
+Measured across the live round settled on 11 October:
+
+| Step | gas |
+| --- | ---: |
+| `post` an epoch, 20 leaves published | 209,976 |
+| `proveRound` to clear the challenge window | 657,015 |
+| `finalize` | ≤ 260,000 |
+| `open` a market | 130,338 |
+| `enter`, twice | 168,662 |
+| `settle` against two proven prices | 133,118 |
+| `claim` | ≤ 160,000 |
+| **round trip** | **~1.72M gas, about 0.18 MON** |
+
+`proveRound` is 38% of that on its own, and it is amortised: one floor advance serves every market
+whose window sits below it. Settlement itself — two Merkle verifications and a comparison — is
+133,118, which is less than opening the market.
 
 ## Method
 

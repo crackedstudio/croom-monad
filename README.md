@@ -57,6 +57,27 @@ specification exists for that sentence.
 
 ---
 
+## And a bettor was paid from a proven price
+
+A complete parimutuel round, settled against the ladder rather than against anybody's word.
+
+| | |
+| --- | --- |
+| Epoch finalised | [`0x9a768b0f…`](https://testnet.monadscan.com/tx/0x9a768b0f9c8fa8048c9e4a8af320e1343f2b665ef4834b924bd923c6ddd8ec3a) |
+| Two accounts stake opposite sides | 0.03 DOWN · [0.02 UP](https://testnet.monadscan.com/tx/0x6affba3c91bee7ac1e40b313e5a1eba94f19db58091dafa3a593c3f51b3c60d9) |
+| Settled against two proven prices | [`0xb747af55…`](https://testnet.monadscan.com/tx/0xb747af552590e928d1b888031eac6326a3095ff738e9777cef393cfd735d5c92) |
+| Winner paid | [`0x533c173d…`](https://testnet.monadscan.com/tx/0x533c173dfdb8bf33aa4e69d835e05d6f1babeb17e9130bbd74487df2c0309407) · staked 0.02, received **0.0495** |
+
+Nothing told the contract a price. It was **shown** two — the open and the close of the window —
+each with a Merkle path proving the value belongs to an epoch the ladder had finalised. Pending
+checkpoints are refused outright, so a payout can never rest on a commitment the fraud proof might
+still overturn.
+
+The 1% rake was credited to the Room's creator rather than sent, because a creator whose address
+reverts on receipt must not be able to freeze everybody else's settlement.
+
+---
+
 ## Deployed on Monad testnet
 
 Chain `10143`. Generated from [`deployments/`](deployments/10143/), never hand-typed.
@@ -238,7 +259,7 @@ The git history is the evidence: 77 commits, one per step, tagged at each gate.
 | **No fee router** | The rake goes entirely to the Room's creator. The protocol's four-way split (treasury / creator / jackpot / operations) is not implemented. |
 | **Nothing pays for floor advancement** | Which is what makes the finding above live on this deployment rather than theoretical. |
 | **No indexer** | Room and epoch history is read from logs. Monad's RPC caps `eth_getLogs` at 100 blocks, so a long backfill pages deliberately. |
-| **Only one epoch has been committed** | The ladder has run one epoch on one Room. Nothing posts checkpoints continuously, so most Rooms have no on-chain commitments at all — which the frontend reports honestly rather than hiding. |
+| **Nothing runs continuously** | One Room has a committed, finalised epoch and one settled market. No bot posts checkpoints or watches for lies on a schedule, so the other 49 Rooms have no on-chain commitments — which the frontend reports plainly rather than hiding. |
 
 ---
 
