@@ -276,6 +276,8 @@ contract MarketTest is Test {
     /// @dev Everything staked leaves again: as payouts, as rake, or as truncation dust bounded by
     /// the number of claimants. A parimutuel market has no treasury and no house, so the only
     /// acceptable residue is the few wei integer division cannot distribute.
+    /// forge-config: default.fuzz.runs = 512
+    /// forge-config: ci.fuzz.runs = 512
     function testFuzz_EverythingStakedIsAccountedFor(
         uint96 upA,
         uint96 upB,

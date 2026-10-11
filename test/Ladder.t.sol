@@ -357,6 +357,8 @@ contract LadderTest is Test {
     /// @dev The bond goes to exactly one party and the contract keeps nothing. Fuzzed over every
     /// position a lie can occupy, because "the liar usually loses the bond" is not the claim —
     /// the claim is that the money is conserved at every index.
+    /// forge-config: default.fuzz.runs = 64
+    /// forge-config: ci.fuzz.runs = 64
     function testFuzz_ABondGoesToExactlyOneParty(
         uint8 rawIndex
     ) public {
