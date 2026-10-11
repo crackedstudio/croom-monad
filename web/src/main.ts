@@ -20,6 +20,7 @@ import {
   txUrl,
 } from "./chain.js";
 import { DEPLOYMENTS, EXPLORER } from "./deployments.js";
+import { beacon } from "./beacon.js";
 import {
   decodeSpec,
   deriveEpoch,
@@ -80,7 +81,8 @@ const el = (html: string): HTMLElement => {
 };
 
 const app = document.getElementById("app")!;
-const drand = new DrandClient();
+// Fails over across the public mirrors; see beacon.ts.
+const drand = beacon;
 
 interface Room {
   roomId: string;
