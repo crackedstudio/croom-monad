@@ -19,7 +19,7 @@ DEPLOYER_ADDRESS ?= 0xc50f1FbD1c36a2305B257376eb2264C3bB6179e8
 RPC              ?= monad_testnet
 export GIT_COMMIT = $(shell git rev-parse --short HEAD)
 
-.PHONY: build test lint check measure-pairing measure-precompiles measure-storage measure-fee-model verify-round sample-verify-gas deploy-entropy prove-round deploy-registry open-rooms deploy-ladder deploy-market web demo-post-lie demo-disprove fund-challenger whoami-deployer deploy-probe measure-pairing-tx
+.PHONY: build test lint check measure-pairing measure-precompiles measure-storage measure-fee-model verify-round sample-verify-gas deploy-entropy prove-round deploy-registry open-rooms deploy-ladder deploy-market web demo-post-lie demo-disprove demo-market-setup demo-market-join demo-market-settle demo-market-claim fund-challenger whoami-deployer deploy-probe measure-pairing-tx
 
 build:  ; forge build --sizes
 test:   ; forge test
@@ -168,6 +168,36 @@ deploy-market:
 web:
 	$(PYTHON) bin/gen-addresses.py
 	cd web && npm install --silent && npm run build
+
+# A complete parimutuel round: honest epoch, finalise, open, stake, settle, claim.
+#
+# The floor has to land between the challenge window and the market's first round -- proving the
+# beacon's latest round instead closes entry on the whole epoch. See DemoMarketSetup.
+demo-market-setup:
+	@test -n "$(LADDER)" -a -n "$(MARKET)" || (echo "usage: make demo-market-setup LADDER=0x... MARKET=0x..."; exit 1)
+	LADDER=$(LADDER) MARKET=$(MARKET) forge script script/DemoMarketSetup.s.sol --rpc-url $(RPC) \
+	  --account $(or $(ACCOUNT),$(DEPLOYER_ACCOUNT)) --sender $(or $(FROM),$(DEPLOYER_ADDRESS)) \
+	  --gas-estimate-multiplier $(DEMO_GAS_MULTIPLIER) --broadcast
+
+# The other side of the book, from a second account.
+demo-market-join:
+	@test -n "$(MARKET)" -a -n "$(ID)" -a -n "$(SIDE)" || \
+	  (echo "usage: make demo-market-join MARKET=0x... ID=0x... SIDE=0|1 ACCOUNT=... FROM=0x..."; exit 1)
+	cast send $(MARKET) "enter(bytes32,uint8)" $(ID) $(SIDE) --value $(or $(STAKE),0.02ether) \
+	  --gas-limit $(or $(ENTER_GAS),200000) --rpc-url $(RPC) \
+	  --account $(or $(ACCOUNT),$(DEPLOYER_ACCOUNT)) --from $(or $(FROM),$(DEPLOYER_ADDRESS))
+
+# Either side claims; a losing claim reverts, which is correct.
+demo-market-claim:
+	@test -n "$(MARKET)" -a -n "$(ID)" || (echo "usage: make demo-market-claim MARKET=0x... ID=0x... ACCOUNT=... FROM=0x..."; exit 1)
+	cast send $(MARKET) "claim(bytes32)" $(ID) --gas-limit $(or $(CLAIM_GAS),160000) --rpc-url $(RPC) \
+	  --account $(or $(ACCOUNT),$(DEPLOYER_ACCOUNT)) --from $(or $(FROM),$(DEPLOYER_ADDRESS))
+
+demo-market-settle:
+	@test -n "$(LADDER)" -a -n "$(MARKET)" || (echo "usage: make demo-market-settle LADDER=0x... MARKET=0x..."; exit 1)
+	LADDER=$(LADDER) MARKET=$(MARKET) forge script script/DemoMarketSettle.s.sol --rpc-url $(RPC) \
+	  --account $(or $(ACCOUNT),$(DEPLOYER_ACCOUNT)) --sender $(or $(FROM),$(DEPLOYER_ADDRESS)) \
+	  --gas-estimate-multiplier $(DEMO_GAS_MULTIPLIER) --broadcast
 
 # Confirms the keystore holds the funded address. Prompts for the password and prints an
 # address; it signs nothing and sends nothing.

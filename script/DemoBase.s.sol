@@ -26,10 +26,24 @@ abstract contract DemoBase is Script {
     /// than either boundary case.
     uint256 internal constant LIE_AT = 9;
 
-    /// @dev Derives the epoch and plants the lie, propagating it so every later leaf follows from
-    /// it — which is what a liar who wants a self-consistent tree would actually do.
+    /// @notice The same epoch, derived honestly. `type(uint256).max` plants no lie.
     function _deriveEpoch(
         RoomSpec.Spec memory spec
+    ) internal view returns (bytes32[] memory, int256[] memory, int256[] memory, int256[] memory) {
+        return _deriveEpochAt(spec, LIE_AT);
+    }
+
+    function _deriveHonest(
+        RoomSpec.Spec memory spec
+    ) internal view returns (bytes32[] memory, int256[] memory, int256[] memory, int256[] memory) {
+        return _deriveEpochAt(spec, type(uint256).max);
+    }
+
+    /// @dev Derives the epoch and plants the lie, propagating it so every later leaf follows from
+    /// it — which is what a liar who wants a self-consistent tree would actually do.
+    function _deriveEpochAt(
+        RoomSpec.Spec memory spec,
+        uint256 lieAt
     )
         internal
         view
@@ -45,7 +59,7 @@ abstract contract DemoBase is Script {
         for (uint256 i = 0; i < EPOCH_ROUNDS; i++) {
             uint64 round = GENESIS + uint64(i);
             (int256 close, int256 high, int256 low) = Tick.deriveRound(model, price, sha256(_sig(i)));
-            if (i == LIE_AT) close = close + 1;
+            if (i == lieAt) close = close + 1;
             closes[i] = close;
             highs[i] = high;
             lows[i] = low;

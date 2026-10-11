@@ -4,8 +4,8 @@
   "type": "module",
   "description": "Croom on Monad \u2014 derives a Room's chart from the drand beacon alone, and checks it against the chain.",
   "scripts": {
-    "build": "esbuild src/main.ts --bundle --format=esm --outfile=dist/bundle.js --target=es2022 --sourcemap --alias:@noble/hashes=./node_modules/@noble/hashes --alias:@noble/curves=./node_modules/@noble/curves",
-    "watch": "esbuild src/main.ts --bundle --format=esm --outfile=dist/bundle.js --target=es2022 --sourcemap --alias:@noble/hashes=./node_modules/@noble/hashes --alias:@noble/curves=./node_modules/@noble/curves --watch",
+    "build": "node build.mjs",
+    "watch": "node build.mjs --watch",
     "serve": "python3 -m http.server 8173"
   },
   "dependencies": {

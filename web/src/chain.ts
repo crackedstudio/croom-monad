@@ -19,6 +19,8 @@ import {
 
 import { CHAIN_ID, DEPLOYMENTS, EXPLORER, RPC_URL } from "./deployments.js";
 
+declare const __MONAD_TESTNET_RPC__: string;
+
 /**
  * More than one endpoint, because on 11 October the primary stopped answering entirely — two days
  * before a deadline, which is exactly when it would. viem's `fallback` transport tries each in
@@ -28,7 +30,7 @@ import { CHAIN_ID, DEPLOYMENTS, EXPLORER, RPC_URL } from "./deployments.js";
  * *check* the chain, not the ability to compute the prices.
  */
 export const RPC_URLS = [
-  RPC_URL,
+  __MONAD_TESTNET_RPC__ || RPC_URL,
   "https://rpc.ankr.com/monad_testnet",
   "https://monad-testnet.drpc.org",
 ] as const;
