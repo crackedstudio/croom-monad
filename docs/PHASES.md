@@ -198,9 +198,10 @@ into the writeup as a stated known limitation. A clear limitation beats a vague 
 > a failure is a *complete* disproof; bisection is only needed when a challenger cannot compute the
 > truth, and here they can. See the contract docs on `Ladder`.
 >
-> The live run had the same address on both sides. `make demo-post-lie` and `make demo-disprove`
-> now split it across two accounts for the submission video, because two unrelated addresses are
-> part of what the demonstration shows.
+> **Re-run on 11 Oct from two unrelated addresses**, after the hardening pass. Liar
+> `0xc50f1F…6179e8` posted (`0xfbdb3101…`); watcher `0x2E355b…34dEE4` disproved
+> (`0x35b60b28…`) and took the bond, having been told nothing. New `Ladder`
+> `0x1fa152836d8a5E6a0E5db8E2E811089ceE26025d`, `Market` `0xBa0614A04243d037A4e05F901eB30C75079d1c9D`.
 
 ## Phase 7 — Conformance sweep and gas table · Day 14
 

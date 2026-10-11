@@ -40,9 +40,14 @@ the smallest lie the encoding can express. It was disproved and the bond forfeit
 
 | | |
 | --- | --- |
-| Dishonest checkpoint | [`0xf8d67a3e…`](https://testnet.monadscan.com/tx/0xf8d67a3e6fb1e739c3d017bc58f4d2f8584bd00b3a6944c34b0e5d3422c69cb0) · 413,067 gas |
-| Disproved, bond forfeited | [`0x3b41ce34…`](https://testnet.monadscan.com/tx/0x3b41ce3409f4af0ddeaaaa517b087da3d771a764a033d97d99085c45d05f12b5) · 817,530 gas |
+| Dishonest checkpoint, by [`0xc50f1F…6179e8`](https://testnet.monadscan.com/address/0xc50f1FbD1c36a2305B257376eb2264C3bB6179e8) | [`0xfbdb3101…`](https://testnet.monadscan.com/tx/0xfbdb310100786244885e913ce66aedbb591ea802ba587f5c03b6b17e3f947027) |
+| Disproved by [`0x2E355b…34dEE4`](https://testnet.monadscan.com/address/0x2E355b544488a68f1A9dec41Ffc4e77ac334dEE4), bond forfeited | [`0x35b60b28…`](https://testnet.monadscan.com/tx/0x35b60b28ae9480a74b364f57ae80b975911f99d7cc1731dd7410a21a8bd713cf) |
 | Result | status `Rejected` · bond `0` · the Room did not advance |
+
+**Two unrelated addresses, and nothing passed between them.** The watcher re-derived the epoch from
+the public beacon, found the leaf that does not follow, and proved it — holding no privilege, no
+shared secret and no prior arrangement with the poster. Its balance moved by exactly
+`0.2 funded − 0.085 gas + 0.05 bond`.
 
 A lie of one unit is caught as decisively as a large one, because the contract asks whether the
 committed value **equals** the re-executed one, not whether it is close. Every rounding rule in the
@@ -60,8 +65,8 @@ Chain `10143`. Generated from [`deployments/`](deployments/10143/), never hand-t
 | --- | --- | --- |
 | `Entropy` | [`0x09A00a27…89D4a7`](https://testnet.monadscan.com/address/0x09A00a27Cac602e777681F3242f4c7eFe989D4a7) | verifies drand rounds, maintains the proven round floor |
 | `Registry` | [`0xE583B914…b4eECA`](https://testnet.monadscan.com/address/0xE583B914CF2d25fc278301b195aB090640b4eECA) | permissionless, content-addressed Room creation |
-| `Ladder` | [`0x1bE27643…f4374c`](https://testnet.monadscan.com/address/0x1bE27643FF478ef280a903831F0927ef68f4374c) | epoch commitments and the fraud proof |
-| `Market` | [`0xB0988209…6805a7`](https://testnet.monadscan.com/address/0xB0988209C76941023bD7D6d9Fba45773636805a7) | parimutuel rounds, 1% published rake |
+| `Ladder` | [`0x1fa15283…26025d`](https://testnet.monadscan.com/address/0x1fa152836d8a5E6a0E5db8E2E811089ceE26025d) | epoch commitments and the fraud proof |
+| `Market` | [`0xBa0614A0…9d1c9D`](https://testnet.monadscan.com/address/0xBa0614A04243d037A4e05F901eB30C75079d1c9D) | parimutuel rounds, 1% published rake |
 
 **50 Rooms are live**, spanning both shipped price families and the full permitted parameter range —
 ids in [`deployments/10143/rooms.txt`](deployments/10143/rooms.txt). Every one has a genesis round
@@ -233,7 +238,7 @@ The git history is the evidence: 77 commits, one per step, tagged at each gate.
 | **No fee router** | The rake goes entirely to the Room's creator. The protocol's four-way split (treasury / creator / jackpot / operations) is not implemented. |
 | **Nothing pays for floor advancement** | Which is what makes the finding above live on this deployment rather than theoretical. |
 | **No indexer** | Room and epoch history is read from logs. Monad's RPC caps `eth_getLogs` at 100 blocks, so a long backfill pages deliberately. |
-| **The live fraud proof ran from one address** | Poster and challenger were the same key. `make demo-post-lie` and `make demo-disprove` split it across two accounts; the recorded run did not use them. |
+| **Only one epoch has been committed** | The ladder has run one epoch on one Room. Nothing posts checkpoints continuously, so most Rooms have no on-chain commitments at all — which the frontend reports honestly rather than hiding. |
 
 ---
 
