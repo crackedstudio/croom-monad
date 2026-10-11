@@ -352,6 +352,54 @@ contract LadderTest is Test {
         assertEq(address(ladder).balance, 0, "holding nothing once settled");
     }
 
+    // ── conservation ────────────────────────────────────────────────────────────────────────
+
+    /// @dev The bond goes to exactly one party and the contract keeps nothing. Fuzzed over every
+    /// position a lie can occupy, because "the liar usually loses the bond" is not the claim —
+    /// the claim is that the money is conserved at every index.
+    function testFuzz_ABondGoesToExactlyOneParty(
+        uint8 rawIndex
+    ) public {
+        uint256 at = 1 + (uint256(rawIndex) % (EPOCH_ROUNDS - 1));
+
+        uint256 posterStart = poster.balance;
+        uint256 watcherStart = watcher.balance;
+
+        (Row[] memory rows, bytes32[] memory leaves,) = _epoch(at);
+        vm.prank(poster);
+        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), _published(rows));
+        assertEq(address(ladder).balance, BOND, "escrowed while pending");
+
+        Ladder.LeafClaim memory prev = _claim(rows, leaves, at - 1);
+        Ladder.LeafClaim memory cur = _claim(rows, leaves, at);
+        bytes memory signature = _sig(START + uint64(at));
+
+        vm.prank(watcher);
+        ladder.disproveTransition(_spec(), 0, prev, cur, signature);
+
+        assertEq(address(ladder).balance, 0, "the contract keeps nothing");
+        assertEq(poster.balance, posterStart - BOND, "the liar paid exactly the bond");
+        assertEq(watcher.balance, watcherStart + BOND, "the watcher received exactly the bond");
+    }
+
+    /// @dev The honest mirror: an unchallenged checkpoint returns the bond and nothing else moves.
+    function test_AnHonestCheckpointConservesTheBond() public {
+        uint256 posterStart = poster.balance;
+        uint256 watcherStart = watcher.balance;
+
+        (Row[] memory rows,,) = _epoch(HONEST);
+        vm.prank(poster);
+        ladder.post{value: BOND}(_spec(), 0, _priorHash(), _endHash(rows), _published(rows));
+
+        _closeTheWindow();
+        vm.prank(watcher);
+        ladder.finalize(_spec(), 0, int128(rows[EPOCH_ROUNDS - 1].close));
+
+        assertEq(address(ladder).balance, 0, "the contract keeps nothing");
+        assertEq(poster.balance, posterStart, "the honest poster is made whole");
+        assertEq(watcher.balance, watcherStart, "finalizing pays the caller nothing");
+    }
+
     // ── publication: the premise the disproof rests on ──────────────────────────────────────
 
     /// @dev A disproof must exhibit a committed leaf *with its Merkle path*, and nobody can build

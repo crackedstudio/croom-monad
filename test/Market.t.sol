@@ -271,6 +271,69 @@ contract MarketTest is Test {
         assertEq(market.RAKE_BPS(), 100, "1.00%");
     }
 
+    // ── conservation ────────────────────────────────────────────────────────────────────────
+
+    /// @dev Everything staked leaves again: as payouts, as rake, or as truncation dust bounded by
+    /// the number of claimants. A parimutuel market has no treasury and no house, so the only
+    /// acceptable residue is the few wei integer division cannot distribute.
+    function testFuzz_EverythingStakedIsAccountedFor(
+        uint96 upA,
+        uint96 upB,
+        uint96 down
+    ) public {
+        uint256 a = 1e15 + (uint256(upA) % 5 ether);
+        uint256 b = 1e15 + (uint256(upB) % 5 ether);
+        uint256 d = 1e15 + (uint256(down) % 5 ether);
+
+        vm.deal(alice, a);
+        vm.deal(bob, d);
+        vm.deal(address(this), b + 1 ether);
+
+        bytes32 id = _openMarket();
+        Market.Side winning =
+            closes[MARKET_END - START] > closes[MARKET_START - START] ? Market.Side.Up : Market.Side.Down;
+        Market.Side losing = winning == Market.Side.Up ? Market.Side.Down : Market.Side.Up;
+
+        vm.prank(alice);
+        market.enter{value: a}(id, winning);
+        market.enter{value: b}(id, winning);
+        vm.prank(bob);
+        market.enter{value: d}(id, losing);
+
+        uint256 pot = a + b + d;
+        assertEq(address(market).balance, pot, "the pot is exactly what was staked");
+
+        _settle(id);
+
+        vm.prank(alice);
+        market.claim(id);
+        market.claim(id);
+        vm.prank(creator);
+        market.withdrawRake();
+
+        // Two winners, so at most two units of truncation.
+        assertLe(address(market).balance, 2, "only dust remains");
+    }
+
+    /// @dev A loser's stake funds the winners and nothing else. Checked explicitly because the
+    /// payout formula is the one place a rounding error would quietly favour the contract.
+    function test_ThePayoutPoolIsThePotLessRake() public {
+        bytes32 id = _openMarket();
+        Market.Side winning =
+            closes[MARKET_END - START] > closes[MARKET_START - START] ? Market.Side.Up : Market.Side.Down;
+        Market.Side losing = winning == Market.Side.Up ? Market.Side.Down : Market.Side.Up;
+
+        vm.prank(alice);
+        market.enter{value: 3 ether}(id, winning);
+        vm.prank(bob);
+        market.enter{value: 1 ether}(id, losing);
+        _settle(id);
+
+        (,,,,, uint128 payoutPool,,) = market.books(id);
+        assertEq(uint256(payoutPool), 4 ether - (4 ether / 100), "pot less exactly the published rake");
+        assertEq(market.rakeOwed(creator), 4 ether / 100, "and the rake is the remainder");
+    }
+
     // ── the money must never be trapped ─────────────────────────────────────────────────────
 
     /// @dev Settlement needs a *finalised* epoch, and nothing obliges anyone to post one. Without
