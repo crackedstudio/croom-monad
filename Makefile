@@ -12,6 +12,10 @@ CHAIN_ID ?= 10143
 # depend on that being done. Override if yours lives elsewhere.
 PYTHON ?= $(shell command -v /opt/homebrew/bin/python3 2>/dev/null || command -v python3)
 DEPLOYER_ADDRESS ?= 0xc50f1FbD1c36a2305B257376eb2264C3bB6179e8
+# The primary public endpoint went down on 11 Oct, two days before the deadline — exactly the
+# "deadline-day infrastructure failure" the plan lists as a risk. Override with:
+#   make <target> RPC=https://monad-testnet.drpc.org
+# Alternatives that answered when the primary did not: monad-testnet.drpc.org, rpc.ankr.com/monad_testnet.
 RPC              ?= monad_testnet
 export GIT_COMMIT = $(shell git rev-parse --short HEAD)
 

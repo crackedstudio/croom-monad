@@ -69,6 +69,10 @@ sort_imports = true
 
 [rpc_endpoints]
 monad_testnet = "${MONAD_TESTNET_RPC}"
+# Fallbacks. The primary public endpoint is not always up; pass --rpc-url monad_testnet_drpc
+# (or set MONAD_TESTNET_RPC) when it is not.
+monad_testnet_drpc = "https://monad-testnet.drpc.org"
+monad_testnet_ankr = "https://rpc.ankr.com/monad_testnet"
 monad_mainnet = "${MONAD_MAINNET_RPC}"
 
 [etherscan]

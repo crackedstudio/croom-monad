@@ -10,6 +10,7 @@
 import {
   addresses,
   addressUrl,
+  RPC_URLS,
   checkpoint,
   connect,
   marketAbi,
@@ -18,7 +19,7 @@ import {
   roomsOpened,
   txUrl,
 } from "./chain.js";
-import { DEPLOYMENTS, EXPLORER, RPC_URL } from "./deployments.js";
+import { DEPLOYMENTS, EXPLORER } from "./deployments.js";
 import {
   decodeSpec,
   deriveEpoch,
@@ -51,7 +52,9 @@ let countingDerivation = false;
 const realFetch = globalThis.fetch.bind(globalThis);
 globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
   const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
-  if (url.startsWith(RPC_URL)) {
+  // Every endpoint, not just the primary: with a fallback transport, counting only one would let
+  // the badge read zero because the chain was being reached some other way.
+  if (RPC_URLS.some((candidate) => url.startsWith(candidate))) {
     rpcCalls += 1;
     queueMicrotask(renderRpcCounter);
   }

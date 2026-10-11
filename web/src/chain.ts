@@ -10,6 +10,7 @@ import {
   createWalletClient,
   custom,
   defineChain,
+  fallback,
   http,
   parseAbi,
   type Address,
@@ -18,15 +19,32 @@ import {
 
 import { CHAIN_ID, DEPLOYMENTS, EXPLORER, RPC_URL } from "./deployments.js";
 
+/**
+ * More than one endpoint, because on 11 October the primary stopped answering entirely — two days
+ * before a deadline, which is exactly when it would. viem's `fallback` transport tries each in
+ * turn, so the verification step degrades to "slower" rather than "broken".
+ *
+ * The chart does not use any of these. That is the point: an outage here costs you the ability to
+ * *check* the chain, not the ability to compute the prices.
+ */
+export const RPC_URLS = [
+  RPC_URL,
+  "https://rpc.ankr.com/monad_testnet",
+  "https://monad-testnet.drpc.org",
+] as const;
+
 export const monadTestnet = defineChain({
   id: CHAIN_ID,
   name: "Monad Testnet",
   nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 },
-  rpcUrls: { default: { http: [RPC_URL] } },
+  rpcUrls: { default: { http: [...RPC_URLS] } },
   blockExplorers: { default: { name: "Monadscan", url: EXPLORER } },
 });
 
-export const publicClient = createPublicClient({ chain: monadTestnet, transport: http() });
+export const publicClient = createPublicClient({
+  chain: monadTestnet,
+  transport: fallback(RPC_URLS.map((url) => http(url, { timeout: 8_000, retryCount: 1 }))),
+});
 
 export const entropyAbi = parseAbi([
   "function provenFloor() view returns (uint64)",
