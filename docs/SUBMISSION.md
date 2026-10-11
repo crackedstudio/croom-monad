@@ -76,10 +76,21 @@ demonstrated by a passing test rather than argued in prose, and the write-up adm
 fix reintroduces the time dependence the design was meant to remove.
 See [`findings/0001-floor-freshness.md`](findings/0001-floor-freshness.md).
 
-**A simpler fraud proof.** The reference bisects. We observed that bisection is only necessary when
-a challenger cannot compute the truth cheaply — and here they can, because the derivation is
-deterministic and public. A one-shot "name the inconsistent adjacent pair" disproof is *complete*,
-and it removes the challenger's bond entirely, because there is no multi-round game to stall.
+**A simpler fraud proof, and the correction that makes it sound.** The reference bisects. We
+observed that bisection is only necessary when a challenger cannot compute the truth cheaply — and
+here they can, because the derivation is deterministic and public. A one-shot "name the inconsistent
+adjacent pair" disproof is *complete*, and it removes the challenger's bond entirely.
+
+The first version of that was wrong in a way worth recording. A disproof must exhibit a committed
+leaf with its Merkle path, and a poster who published only a root could withhold the preimages — so
+a challenger would know the root was false and be unable to prove it. Bisection had been supplying
+data availability implicitly, by forcing disclosure at every step of the game, and removing it
+removed that too. The fix is that `post` takes the leaves and derives the root, which costs about
+56 bytes per round and additionally makes structurally invalid trees unpostable rather than merely
+disprovable.
+
+We found this by re-reading our own argument for its premises rather than its conclusion, which is
+the kind of review that is easy to skip when the tests are green.
 
 **A third implementation.** Rust produced the vectors, TypeScript reproduces them, and Solidity now
 reproduces them on Monad — written last, against an artefact frozen before it existed. Three

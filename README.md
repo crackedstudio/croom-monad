@@ -117,7 +117,29 @@ Two consequences:
 - **The proof is one shot and atomic.** A challenger submits the disproof itself, not a promise to substantiate one later. An invalid disproof simply reverts.
 - **The challenger posts no bond.** Bonds on both sides exist to punish stalling in a multi-round game; with no rounds, there is nothing to stall. Watching costs only gas — which is the property the design wants, since safety rests on somebody bothering to look.
 
-This is a different shape, not a reduced one.
+### …which only works because posters must publish
+
+That argument has a premise, and it took a second pass to notice: a disproof must exhibit a
+committed leaf **with its Merkle path**, and nobody can build a path for a leaf they have never
+seen. A poster who committed a bare root and withheld its preimages could not be disproved at all.
+A challenger would know the root was wrong and be unable to prove it; the checkpoint would finalise;
+and from then on only the poster could produce `provenClose` proofs — which is to say, only the
+poster would decide what price settles a market.
+
+This is what bisection provides implicitly: each round of that game forces the poster to disclose a
+midpoint. Removing bisection kept the completeness argument and removed the mechanism that made its
+premise true.
+
+So `post` takes the leaves themselves and **derives** the root from them, at about 56 bytes of
+calldata per round. Three things follow:
+
+| | |
+| --- | --- |
+| **Data availability** | the preimages are in calldata and in the log, so a disproof is always constructible |
+| **Structural validity** | rounds must be exactly the epoch's, contiguous and ascending — a tree holding two leaves for the same round cannot be committed, which matters because sorted-pair Merkle proofs cannot bind a leaf's *position* and both would otherwise verify |
+| **Root honesty** | the root cannot disagree with the leaves, because it is computed from them |
+
+With that, the one-shot disproof is a different shape rather than a reduced one.
 
 ---
 

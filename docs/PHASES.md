@@ -275,6 +275,20 @@ infrastructure. The chart anyone can recompute is the stronger demo.
 | `gate-3` | A dishonest checkpoint was posted on public testnet, challenged, and defeated — with tx hashes | 13 |
 | `submission` | Frozen, deployed, verified, written up | 20 |
 
+## Hardening pass, 11 Oct
+
+Found by review rather than by tests, with three days left:
+
+| Defect | Severity |
+| --- | --- |
+| A poster could withhold the leaves, making their checkpoint **undisprovable** and handing them sole control of settlement prices | critical — it defeated the central claim |
+| A tree holding two leaves for the same round would let **both** verify, since sorted-pair proofs cannot bind position | high |
+| A Room creator that reverts on receipt could permanently **block settlement** of every market on their Room | high |
+| Stakes were **locked forever** if nobody ever finalised the covering epoch | medium |
+| Six latent compiler warnings that `deny = "warnings"` would have failed CI on | low |
+
+All fixed, with tests. Conservation of bonds and payouts is now fuzzed.
+
 ## Cut lines, decided in advance
 
 > **Taken on day 11 — see [`docs/decisions/0002-scope.md`](decisions/0002-scope.md).** Bisection,
