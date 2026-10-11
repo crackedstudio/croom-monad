@@ -20,6 +20,7 @@ import {
   type RoomSpec,
   type State,
 } from "./protocol.js";
+import { chip } from "./explain.js";
 import type { beacon } from "./beacon.js";
 
 type Drand = typeof beacon;
@@ -119,7 +120,7 @@ function render(host: HTMLElement): void {
   const r = g.last_result;
 
   host.innerHTML = `
-    <div class="label">call the next tick</div>
+    <div class="label">call the next tick${chip("predict")}</div>
     <p class="note" style="margin:0 0 4px">
       This is your own Room, advancing live. Every three seconds the beacon signs a value and one
       more price appears. Say which way the next one goes &mdash; the round you are guessing on has

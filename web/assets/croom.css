@@ -351,3 +351,122 @@ button.primary:hover { background: var(--accent); border-color: var(--accent); }
 
 /* The chart carries the one gradient the system allows outside the hero. */
 #app svg { border: 1px solid var(--rule); background: var(--ink); }
+
+
+/* ── explainers ──────────────────────────────────────────────────────────────────────────────
+   A marker beside anything that carries weight, and a modal behind each one. The page is dense
+   with terms that are obvious only once somebody tells you, and a visitor who does not know what
+   a proven floor is will read the panels as decoration. */
+
+.qmark {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 17px; height: 17px;
+  margin-left: 7px;
+  padding: 0;
+  vertical-align: middle;
+  font: 700 10px/1 var(--mono);
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--accent);
+  border-radius: 0;
+  cursor: pointer;
+  transition: background .12s, color .12s;
+}
+.qmark:hover, .qmark:focus-visible { background: var(--accent); color: var(--accent-ink); outline: none; }
+/* `#app button` sets padding and type for buttons in the app; a marker is not one of those. */
+#app button.qmark { padding: 0; width: 17px; height: 17px; font: 700 10px/1 var(--mono); letter-spacing: 0; border-color: var(--accent); color: var(--accent); }
+#app button.qmark:hover { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
+dialog.explain {
+  width: min(620px, calc(100vw - 32px));
+  padding: 0;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--rule-bright);
+  border-radius: 0;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, .7);
+}
+dialog.explain::backdrop { background: rgba(5, 5, 8, .82); }
+
+.explain-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  padding: 22px 24px 14px;
+  border-bottom: 1px solid var(--rule);
+}
+.explain-head h3 {
+  margin: 0;
+  font: 700 19px/1.25 var(--display);
+  text-transform: uppercase;
+  letter-spacing: .02em;
+}
+.explain-close {
+  flex: none;
+  padding: 4px 8px;
+  font: 500 13px/1 var(--mono);
+  color: var(--dim);
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 0;
+  cursor: pointer;
+}
+.explain-close:hover { color: var(--text); border-color: var(--text); }
+
+.explain-body { padding: 18px 24px 4px; max-height: min(60vh, 520px); overflow-y: auto; }
+.explain-body p { margin: 0 0 14px; font-size: 15px; line-height: 1.62; color: var(--dim); }
+.explain-body p strong { color: var(--text); }
+.explain-body p.note { font-size: 13px; color: var(--dimmer); border-left: 2px solid var(--rule-bright); padding-left: 12px; }
+.explain-body code { font: 500 12px/1 var(--mono); color: var(--accent); }
+.explain-body table { width: 100%; border-collapse: collapse; margin: 0 0 14px; }
+.explain-body td { padding: 9px 0; border-bottom: 1px solid var(--rule); font-size: 14px; color: var(--dim); vertical-align: top; }
+.explain-body td:first-child { width: 34%; padding-right: 16px; font: 500 12px/1.4 var(--mono); color: var(--text); text-transform: uppercase; letter-spacing: .06em; }
+
+.explain-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 16px 24px 20px;
+  border-top: 1px solid var(--rule);
+}
+.explain-next {
+  padding: 12px 20px;
+  font: 700 12px/1 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  color: var(--accent-ink);
+  background: var(--text);
+  border: 1px solid var(--text);
+  border-radius: 0;
+  cursor: pointer;
+}
+.explain-next:hover { background: var(--accent); border-color: var(--accent); }
+
+/* The spotlight: a ring plus a dimmed everything-else, done with one enormous shadow so that no
+   overlay element has to be positioned against a moving layout. */
+/* Docked to the foot of the viewport while a panel is spotlit at the head of it. Opened
+   non-modally so the page can still scroll, which means position comes from here rather than from
+   the browser's centring of a modal dialog. */
+dialog.explain.docked {
+  position: fixed;
+  inset: auto auto 3vh 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  z-index: 60;
+}
+dialog.explain.docked .explain-body { max-height: min(40vh, 360px); }
+
+.spotlight {
+  position: relative;
+  z-index: 10;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 1px var(--accent), 0 0 0 9999px rgba(5, 5, 8, .72);
+}
+@media (prefers-reduced-motion: reduce) {
+  .qmark { transition: none; }
+}
+
+/* A standing invitation to re-open the tour, for anyone who dismissed it. */
+.tour-cta {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
+  margin: 0 0 22px;
+  padding: 14px 16px;
+  border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}

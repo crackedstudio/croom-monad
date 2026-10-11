@@ -21,6 +21,7 @@ import {
   type Candle,
   type RoomSpec,
 } from "./protocol.js";
+import { chip } from "./explain.js";
 import type { beacon } from "./beacon.js";
 
 type Drand = typeof beacon;
@@ -131,7 +132,7 @@ export async function mountCompose(
     const isDrift = draft.family === Family.Drift;
 
     host.innerHTML = `
-      <div class="label">open your own room</div>
+      <div class="label">open your own room${chip("compose")}</div>
       <p class="note" style="margin:0 0 14px">
         Pick the parameters. The room id underneath is the hash of exactly these fields, so it
         changes the moment you move anything &mdash; there is no such thing as editing a Room, only
@@ -141,6 +142,7 @@ export async function mountCompose(
       <div class="controls" style="margin:0 0 4px">
         <button id="fam-drift" class="${isDrift ? "primary" : ""}">Drift</button>
         <button id="fam-step" class="${isDrift ? "" : "primary"}">Step</button>
+        ${chip("family")}
         <span class="note" style="margin:0">
           ${
             isDrift
@@ -153,21 +155,21 @@ export async function mountCompose(
       <div class="controls" style="margin:14px 0 0">
         ${
           isDrift
-            ? `<label class="label" style="margin:0;min-width:160px">volatility ${draft.volPct}% / year</label>
+            ? `<label class="label" style="margin:0;min-width:160px">volatility ${draft.volPct}% / year${chip("volatility")}</label>
                <input id="vol" type="range" min="10" max="300" step="5" value="${draft.volPct}" style="flex:1;min-width:200px" />`
             : `<label class="label" style="margin:0;min-width:160px">step ${fmt((BigInt(draft.stepCents) * WAD) / 100n)}</label>
                <input id="step" type="range" min="1" max="200" step="1" value="${draft.stepCents}" style="flex:1;min-width:200px" />`
         }
       </div>
       <div class="controls" style="margin:12px 0 16px">
-        <label class="label" style="margin:0;min-width:160px">sub-ticks per round ${draft.subTicks}</label>
+        <label class="label" style="margin:0;min-width:160px">sub-ticks per round ${draft.subTicks}${chip("subticks")}</label>
         <input id="sub" type="range" min="1" max="8" step="1" value="${draft.subTicks}" style="flex:1;min-width:200px" />
       </div>
 
       ${preview(candles)}
 
       <table style="margin-top:14px">
-        <tr><td>room id</td><td style="color:var(--accent)">${id.slice(0, 26)}…${id.slice(-6)}</td></tr>
+        <tr><td>room id${chip("roomid")}</td><td style="color:var(--accent)">${id.slice(0, 26)}…${id.slice(-6)}</td></tr>
         <tr><td>canonical spec</td><td>${bytes.length} bytes</td></tr>
         <tr><td>opening price</td><td>${fmt(spec.initialPrice)}</td></tr>
       </table>

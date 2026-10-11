@@ -15,6 +15,7 @@ import {
   provenFloor,
   roomsOpened,
 } from "./chain.js";
+import { chip, mountExplainers } from "./explain.js";
 import { mountRig } from "./rig.js";
 import { mountPredict } from "./predict.js";
 import { mountCompose, draftSpec } from "./compose.js";
@@ -164,21 +165,21 @@ function beaconPanel(): string {
 
   return `
   <div class="row">
-    <div class="panel">
-      <div class="label">drand evmnet head</div>
+    <div class="panel" id="panel-head">
+      <div class="label">drand evmnet head${chip("beacon")}</div>
       <div class="big">${head.toLocaleString("en-US")}</div>
       <div class="note">A signed random value every 3 seconds, from the League of Entropy.</div>
     </div>
-    <div class="panel">
-      <div class="label">proven floor on Monad</div>
+    <div class="panel" id="panel-floor">
+      <div class="label">proven floor on Monad${chip("floor")}</div>
       <div class="big">${floor.toLocaleString("en-US")}</div>
       <div class="note">
         The highest round <em>proved</em> to exist on chain.
         <a href="${addressUrl(addresses.entropy)}" target="_blank" rel="noreferrer">Entropy</a>
       </div>
     </div>
-    <div class="panel">
-      <div class="label">floor staleness</div>
+    <div class="panel" id="panel-stale">
+      <div class="label">floor staleness${chip("staleness")}</div>
       <div class="big">${behind.toLocaleString("en-US")}</div>
       <div style="margin-top:6px">
         <span class="badge ${stale ? "warn" : "good"}">${hours < 1 ? `${(hours * 60).toFixed(0)} min` : `${hours.toFixed(1)} hours`} behind</span>
@@ -206,12 +207,12 @@ function specTable(room: Room): string {
 
   return `
   <table>
-    <tr><td>room id</td><td>${short(room.roomId, 14)}</td></tr>
-    <tr><td>family</td><td>${family}</td></tr>
-    <tr><td>${paramLabel}</td><td>${paramValue}</td></tr>
+    <tr><td>room id${chip("roomid")}</td><td>${short(room.roomId, 14)}</td></tr>
+    <tr><td>family${chip("family")}</td><td>${family}</td></tr>
+    <tr><td>${paramLabel}${"sigma" in s.params ? chip("volatility") : ""}</td><td>${paramValue}</td></tr>
     <tr><td>opening price</td><td>${fmt(s.initialPrice, 2)}</td></tr>
-    <tr><td>sub-ticks per round</td><td>${s.subTicks}</td></tr>
-    <tr><td>rounds per epoch</td><td>${s.epochRounds}</td></tr>
+    <tr><td>sub-ticks per round${chip("subticks")}</td><td>${s.subTicks}</td></tr>
+    <tr><td>rounds per epoch${chip("epoch")}</td><td>${s.epochRounds}</td></tr>
     <tr><td>first round</td><td>${s.genesisRound.toLocaleString("en-US")}</td></tr>
     <tr><td>creator</td><td><a href="${addressUrl(room.creator)}" target="_blank" rel="noreferrer">${short(room.creator, 8)}</a></td></tr>
   </table>
@@ -266,23 +267,23 @@ async function verifyPanel(room: Room): Promise<string> {
        specification the contract implements.</div>`
     : `<div class="note">
          <strong>The committed root is not the one the beacon produces.</strong> Whoever posted it
-         was wrong, and anyone who noticed could take their bond &mdash; with no stake of their own,
-         because the proof is one shot rather than a game.
+         was wrong, and anyone who noticed could take their bond${chip("disproof")} &mdash; with no
+         stake of their own, because the proof is one shot rather than a game.
          ${onChain.status === "Rejected" ? " Somebody did: this checkpoint has been <strong>rejected</strong> and the bond forfeited." : ""}
        </div>`;
 
   return `
   <div class="panel">
-    <div class="label">verify against chain &mdash; epoch ${target} (rounds ${r0.toLocaleString("en-US")}&ndash;${r1.toLocaleString("en-US")})</div>
+    <div class="label">verify against chain${chip("checkpoint")} &mdash; epoch ${target} (rounds ${r0.toLocaleString("en-US")}&ndash;${r1.toLocaleString("en-US")})</div>
     <div style="margin-bottom:10px">
       <span class="badge ${agree ? "good" : "bad"}">${agree ? "commitments agree" : "commitments disagree"}</span>
       <span class="badge ${onChain.status === "Final" ? "good" : onChain.status === "Rejected" ? "bad" : "warn"}">${onChain.status.toLowerCase()}</span>
     </div>
     <table>
-      <tr><td>computed in this browser</td><td>${short(localRoot, 14)}</td></tr>
+      <tr><td>computed in this browser${chip("merkle")}</td><td>${short(localRoot, 14)}</td></tr>
       <tr><td>committed on Monad</td><td>${short(onChain.merkleRoot, 14)}</td></tr>
       <tr><td>posted by</td><td><a href="${addressUrl(onChain.poster)}" target="_blank" rel="noreferrer">${short(onChain.poster, 8)}</a></td></tr>
-      <tr><td>bond still held</td><td>${fmt(onChain.bond, 3)} MON</td></tr>
+      <tr><td>bond still held${chip("bond")}</td><td>${fmt(onChain.bond, 3)} MON</td></tr>
     </table>
     ${verdict}
   </div>`;
@@ -369,14 +370,21 @@ async function mountInteractive(): Promise<void> {
 
 function shell(body: string): void {
   app.innerHTML = `
+    <div class="tour-cta">
+      <button data-explain="__tour__" class="primary">Show me around</button>
+      <span class="note" style="margin:0">
+        A guided minute through what everything here means. Every <span class="qmark"
+        style="cursor:default">?</span> on the page opens the same explanations on its own.
+      </span>
+    </div>
     ${beaconPanel()}
-    <div class="panel">
+    <div class="panel" id="panel-chart">
       <div class="controls">
-        <select id="room"></select>
+        <select id="room" aria-label="Which Room to derive"></select>
         <button id="load" class="primary">Derive chart</button>
         <span class="note" style="margin:0">
-          RPC calls to Monad while deriving:
-          <span id="rpc-count" class="badge good">0</span>
+          Room${chip("room")} &middot; RPC calls to Monad while deriving:
+          <span id="rpc-count" class="badge good">0</span>${chip("rpc")}
         </span>
       </div>
       <div id="chart"></div>
@@ -446,6 +454,7 @@ async function loadChart(): Promise<void> {
 }
 
 async function main(): Promise<void> {
+  mountExplainers();
   app.innerHTML = `<div class="panel"><p class="note">Reading the beacon and the chain…</p></div>`;
 
   const [head, floor, opened] = await Promise.all([
@@ -470,18 +479,18 @@ async function main(): Promise<void> {
 
   shell(`
     <div class="row">
-      <div class="panel">
-        <div class="label">this Room's spec</div>
+      <div class="panel" id="panel-spec">
+        <div class="label">this Room's spec${chip("room")}</div>
         <div id="spec">${state.selected ? specTable(state.selected) : ""}</div>
       </div>
       <div class="panel">
-        <div class="label">deployed on Monad testnet</div>
+        <div class="label">deployed on Monad testnet${chip("contracts")}</div>
         <table>
           ${Object.entries(DEPLOYMENTS)
             .filter(([n]) => ["Entropy", "Registry", "Ladder", "Market"].includes(n))
             .map(
               ([n, d]) =>
-                `<tr><td>${n}</td><td><a href="${EXPLORER}/address/${d.address}" target="_blank" rel="noreferrer">${short(d.address, 8)}</a></td></tr>`,
+                `<tr><td>${n}${n === "Market" ? chip("market") : ""}${n === "Ladder" ? chip("checkpoint") : ""}</td><td><a href="${EXPLORER}/address/${d.address}" target="_blank" rel="noreferrer">${short(d.address, 8)}</a></td></tr>`,
             )
             .join("")}
           <tr><td>beacon</td><td>${EVMNET.scheme}</td></tr>

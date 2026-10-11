@@ -23,6 +23,7 @@ import {
   type RoomSpec,
 } from "./protocol.js";
 import { EXPLORER } from "./deployments.js";
+import { chip } from "./explain.js";
 
 const hex = (b: Uint8Array) => "0x" + [...b].map((x) => x.toString(16).padStart(2, "0")).join("");
 const short = (s: string, n = 10) => `${s.slice(0, 2 + n)}…${s.slice(-6)}`;
@@ -130,7 +131,10 @@ function controls(): string {
   </div>
   <div class="controls" style="margin:0">
     <button id="rig-ask" class="primary">Ask Monad to accept this price</button>
-    <span class="note" style="margin:0">A free <code>eth_call</code>. No wallet, no gas, no signature.</span>
+    <span class="note" style="margin:0">
+      A free <code>eth_call</code> to <code>Ladder.provenClose</code> &mdash; the same call that
+      settles markets. No wallet, no gas, no signature.${chip("merkle")}
+    </span>
   </div>
   <div id="rig-verdict" style="margin-top:18px"></div>`;
 }
@@ -138,7 +142,7 @@ function controls(): string {
 function render(host: HTMLElement, target: RigTarget): void {
   const [r0, r1] = epochRange(target.spec, target.epoch);
   host.innerHTML = `
-    <div class="label">try to rig it</div>
+    <div class="label">try to rig it${chip("rig")}</div>
     <p class="note" style="margin:0 0 4px">
       Epoch ${target.epoch} of this Room &mdash; rounds ${r0.toLocaleString("en-US")}&ndash;${r1.toLocaleString("en-US")}
       &mdash; is <strong>finalised</strong> on Monad. Click any round below, set its price to whatever
@@ -226,7 +230,7 @@ async function ask(host: HTMLElement, target: RigTarget): Promise<void> {
       }
     </p>
     <table>
-      <tr><td>root held by the contract</td><td>${short(target.committedRoot, 14)}</td></tr>
+      <tr><td>root held by the contract${chip("leafproof")}</td><td>${short(target.committedRoot, 14)}</td></tr>
       <tr><td>root your price needs</td><td style="color:var(--bad)">${short(forged, 14)}</td></tr>
     </table>
     <p class="note" style="margin:12px 0 0">
