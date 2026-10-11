@@ -1,6 +1,8 @@
-# Demo video — 2 to 3 minutes
+# Demo video — about 3 minutes
 
-The last beat is the submission. Everything before it exists to make that beat mean something.
+Two beats are the submission: a lie caught, and a bettor paid. Everything else exists to make those
+two mean something. If a hard three-minute cap forces a cut, drop **0:50** — the fraud proof
+re-establishes the same point more forcefully.
 
 ## Before recording
 
@@ -75,7 +77,34 @@ Show the explorer: **status Rejected**, bond moved.
 > large one — because the contract asks whether the value *equals* what the beacon produces, not
 > whether it's close."
 
-## 2:25 — close (25s)
+## 2:25 — and a bettor gets paid (30s)
+
+This is the part that makes it a market rather than a demo. It is already on-chain, so it can be
+shown as transactions rather than performed live.
+
+```bash
+make print-market-values        # free; shows state, winner, rake owed, who can claim
+```
+
+> "A price nobody controls is only useful if you can trade on it. So: two accounts, opposite
+> sides, three cents between them."
+
+Point at the two stake transactions, from two unrelated addresses.
+
+> "Settlement doesn't ask an oracle what the price was. It's *shown* the price — the open and the
+> close of the window — each with a Merkle path proving that value is in an epoch the ladder has
+> already finalised. A checkpoint still inside its challenge window is refused, so a payout can
+> never rest on a number the fraud proof might overturn."
+
+Show the settle transaction, then the claim.
+
+> "Twenty staked, forty-nine and a half returned. One percent rake, published up front, credited to
+> the room's creator — credited, not sent, because a creator whose address reverts shouldn't be able
+> to freeze everybody else's money."
+
+The contract's remaining balance is exactly the unwithdrawn rake. Nothing else is held.
+
+## 2:55 — close (25s)
 
 > "Four contracts on Monad. Fifty rooms anyone can open and nobody can change. The maths is
 > bit-exact against a Rust implementation written before this one existed, across twenty thousand
@@ -85,10 +114,16 @@ Show the explorer: **status Rejected**, bond moved.
 > of it a single pairing. Verifying every round would cost sixteen hundred MON a day, which is why
 > the chain commits instead of verifies, and why the fraud proof has to work."
 >
-> "It does. There's a transaction hash for it."
+> "It does. There's a transaction hash for it — and another one where somebody got paid from a
+> price that no one, including us, could have moved."
 
 ## What not to claim
 
 - Not that Monad is the only chain this runs on. The reference runs on Solana. The *cadence* is what Monad unlocks.
 - Not that the protocol was designed this fortnight. It was not, and the README says so.
 - Not that the floor-freshness issue is solved. It is reported, demonstrated by a test, and open.
+- Not that the market has depth or a history. **One** market has been opened and settled, by two
+  accounts, for five cents in total. The mechanism is proven; the volume is nothing and saying
+  otherwise invites exactly the question you cannot answer.
+- Not that anything runs unattended. Every post, floor advance and settlement so far was a command
+  somebody typed.
