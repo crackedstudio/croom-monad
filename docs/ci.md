@@ -34,3 +34,17 @@ Two habits that defuse it:
 
 - Run `make check` rather than `forge test` alone. It is ordered `build lint test`, so a lint abort stops the chain instead of falling through to a stale pass.
 - Treat a *drop* in the reported test count as a failure, not a curiosity. `forge test --list` shows what the binary actually contains; `forge clean` resolves any doubt.
+
+## The same trap, a fourth time
+
+`forge clean` was needed again on 11 October, and the symptom was different enough to waste time:
+`forge script` failed with **"Could not find target contract"** while `forge build` reported
+"No files changed, compilation skipped" and the artifact JSON was sitting right there — with
+`bytecode` present but empty.
+
+Foundry's cache and `out/` can disagree, and when they do the error names the wrong thing. The
+`deny = "warnings"` abort was one way to get there; an interrupted build is another, and on this
+occasion the interruption was a network timeout killing `forge script` mid-compile.
+
+`bin/redeploy.sh` now begins with `forge clean`. Ten seconds of rebuilding beats diagnosing this
+again with two days left.

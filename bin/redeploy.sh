@@ -15,6 +15,14 @@ SENDER="${DEPLOYER_ADDRESS:-0xc50f1FbD1c36a2305B257376eb2264C3bB6179e8}"
 REGISTRY="${REGISTRY:-0xE583B914CF2d25fc278301b195aB090640b4eECA}"
 PYTHON="${PYTHON:-/opt/homebrew/bin/python3}"
 
+# A clean build, always. Foundry's cache can report "no files changed" while `out/` is missing
+# the script artifacts — forge then fails with "Could not find target contract", which reads like
+# a missing file rather than a stale cache. It has cost time four times in this project; ten
+# seconds of rebuilding is cheaper than diagnosing it again on a deadline.
+echo "== 0/3 clean build =="
+forge clean
+forge build
+
 echo "rpc:      $RPC"
 echo "sender:   $SENDER"
 echo "registry: $REGISTRY"
