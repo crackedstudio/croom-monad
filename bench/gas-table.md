@@ -19,14 +19,30 @@ estimates.
 | `Entropy` | `verifyRound` (view) | 645,623 | — | `eth_estimateGas` |
 | `Entropy` | `proveRound` | 656,948 | 0.0677 MON | `eth_estimateGas` |
 | `Registry` | `openRoom` | 77,709 | 0.0080 MON | `eth_estimateGas` |
-| `Ladder` | `post` | 107,421 | 0.0111 MON | `eth_estimateGas` |
-| `Ladder` | `disproveTransition` | 817,530 ⚠️ | 0.0842 MON | live transaction, **billed** |
+| `Ladder` | `post` (20 leaves published) | 209,976 | 0.0216 MON | `eth_estimateGas` |
+| `Ladder` | `disproveTransition` | 817,520 ⚠️ | 0.0850 MON | live transaction, **billed** |
 | `Market` | `open` | 130,338 | 0.0134 MON | `eth_estimateGas` |
 
-⚠️ `disproveTransition` is the one figure that is a billed limit rather than an execution cost. The
-only checkpoint on this deployment is already `Rejected`, so the call now reverts and cannot be
-estimated without posting another lie. The real cost is bounded below by `verifyRound` (645,623),
-since the disproof verifies a beacon signature, plus two Merkle folds and one re-executed round.
+⚠️ `disproveTransition` is the one figure that is a billed limit rather than an execution cost. A
+disproof only estimates against a **pending** checkpoint, and the one on this deployment is already
+`Rejected` — measuring it again would mean posting another lie. The real cost is bounded below by
+`verifyRound` (645,623), since the disproof verifies a beacon signature, plus two Merkle folds, one
+re-executed round and the bond transfer.
+
+### What publication costs
+
+`post` carries every round's result so that a disproof is always constructible (see the note on
+`Ladder.post`). Measured either side of that change:
+
+| | gas |
+| --- | ---: |
+| root only | 107,421 |
+| with 20 leaves published — 3,044 bytes of calldata | **209,976** |
+| **price of the guarantee** | **+102,555** — about 0.011 MON per checkpoint |
+
+That is what it costs to make the one-shot fraud proof sound rather than merely plausible. It
+scales with epoch length: 56 bytes per round, so a 100-round epoch adds roughly five times as much
+and is still comfortably inside Monad's 30M per-transaction limit.
 
 ## Deployments
 

@@ -1,13 +1,13 @@
 {
-  "address": "0xB0988209C76941023bD7D6d9Fba45773636805a7",
-  "block": 69561514,
+  "address": "0xBa0614A04243d037A4e05F901eB30C75079d1c9D",
+  "block": 70116216,
   "chainId": 10143,
-  "commit": "50e535f",
+  "commit": "b75f099",
   "compiler": "solc_version=0.8.28 evm_version=cancun optimizer_runs=1_000_000",
   "contract": "Market",
   "deployer": "0xc50f1FbD1c36a2305B257376eb2264C3bB6179e8",
   "effectiveGasPriceWei": 103000000001,
-  "gasUsed": 2686981,
-  "paidWei": 276759043002686981,
-  "txHash": "0xa1942cb37f6f146254a430fe5a3b1fa37989f0b1a5c1646373b8272fbfb6f923"
+  "gasUsed": 3157352,
+  "paidWei": 325207256003157352,
+  "txHash": "0x310b3620b4288041654c6536773a500ac6df61de08a6f7ed0e2af013f4572fe6"
 }

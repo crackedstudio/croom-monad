@@ -9,8 +9,8 @@ export const EXPLORER = "https://testnet.monadscan.com";
 export const DEPLOYMENTS = {
   Entropy: { address: "0x09A00a27Cac602e777681F3242f4c7eFe989D4a7" as const, block: 67860754, txHash: "0x43c68f346ec047d7fbb72892ad8b42264a82f96e101d3e230fb1bbcb8840c8cc" },
   GasProbe: { address: "0x5222AC024a4D74435f943A889C111DBFe330215B" as const, block: 65024223, txHash: "0xcbc8069972a69b98b9df932cb180298980114e9c575d8732e009f0bdbc88eb75" },
-  Ladder: { address: "0x1bE27643FF478ef280a903831F0927ef68f4374c" as const, block: 69525906, txHash: "0x1c66311459c52833746811f9bea33faf1684081e045a8c3be4b09f208127f724" },
-  Market: { address: "0xB0988209C76941023bD7D6d9Fba45773636805a7" as const, block: 69561514, txHash: "0xa1942cb37f6f146254a430fe5a3b1fa37989f0b1a5c1646373b8272fbfb6f923" },
+  Ladder: { address: "0x1fa152836d8a5E6a0E5db8E2E811089ceE26025d" as const, block: 70116092, txHash: "0x78c1c45dd7e312d749b3e92847c8300150f56338ff79ac161045ce43e0a15505" },
+  Market: { address: "0xBa0614A04243d037A4e05F901eB30C75079d1c9D" as const, block: 70116216, txHash: "0x310b3620b4288041654c6536773a500ac6df61de08a6f7ed0e2af013f4572fe6" },
   Registry: { address: "0xE583B914CF2d25fc278301b195aB090640b4eECA" as const, block: 68240012, txHash: "0x61bc2074339c74a04790154d38f62f2ed776b891ea487942cc9644f86d583962" },
   StoragePageProbe: { address: "0xc33056Af574168157a7D801Ab213cf1d4416dDc6" as const, block: 65024223, txHash: "0x5557b6e039ea46965151d9f11bd8bd3e9a18cfbb7637d8c573cf705e16724811" },
 } as const;

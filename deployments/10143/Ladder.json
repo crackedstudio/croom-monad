@@ -1,13 +1,13 @@
 {
-  "address": "0x1bE27643FF478ef280a903831F0927ef68f4374c",
-  "block": 69525906,
+  "address": "0x1fa152836d8a5E6a0E5db8E2E811089ceE26025d",
+  "block": 70116092,
   "chainId": 10143,
-  "commit": "a7b66be",
+  "commit": "b75f099",
   "compiler": "solc_version=0.8.28 evm_version=cancun optimizer_runs=1_000_000",
   "contract": "Ladder",
   "deployer": "0xc50f1FbD1c36a2305B257376eb2264C3bB6179e8",
-  "effectiveGasPriceWei": 103000000000,
-  "gasUsed": 4342651,
-  "paidWei": 447293053000000000,
-  "txHash": "0x1c66311459c52833746811f9bea33faf1684081e045a8c3be4b09f208127f724"
+  "effectiveGasPriceWei": 105000000000,
+  "gasUsed": 4718691,
+  "paidWei": 495462555000000000,
+  "txHash": "0x78c1c45dd7e312d749b3e92847c8300150f56338ff79ac161045ce43e0a15505"
 }

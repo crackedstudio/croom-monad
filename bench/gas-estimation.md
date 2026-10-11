@@ -59,6 +59,7 @@ Two shapes measured on Monad against what forge's own EVM estimates:
 | --- | --- | --- | --- |
 | `Entropy.proveRound` — pairing, hash-to-curve, one fresh slot | 276,012 | **669,285** | **2.42×** |
 | `Registry.openRoom` — one cross-contract read, one fresh slot | 63,086 | **77,709** | **1.23×** |
+| `Ladder.post` — 3 KB of calldata, keccak, five fresh slots | 273,128 | **209,976** | **0.77×** |
 
 The factor is **not a property of the chain, it is a property of the transaction**. It tracks how
 much of the work sits in repriced operations:
@@ -66,12 +67,18 @@ much of the work sits in repriced operations:
 - `proveRound` is dominated by `ecPairing`, repriced 5×, so it lands near 2.4×.
 - `openRoom` does ordinary work plus a cold cross-contract read (10,100 against 2,600) and one fresh storage slot (27,900 against 22,100), so it lands near 1.2×.
 
-**There is no single safe multiplier.** We used 1.8× for the 50-Room broadcast, which was
-over-cautious by 46% and cost **0.188 MON** of pure padding — a cheaper mistake than the
-under-estimate that preceded it, and still a mistake. The default is now 1.3×, measured.
+**There is no single safe multiplier, and the factor is not even always above one.** The third
+measurement is the one that settles it: `Ladder.post` publishes 3 KB of leaves, and calldata is
+priced the same on both chains while the repriced operations are a small share of the work — so
+forge *over*-estimated by 1.3×. The range across three real transactions is **0.77× to 2.42×**.
 
-A multiplier is only appropriate when every transaction in a batch has the same shape, as the 50
-Rooms did. For a mixed script, measure each call.
+A multiplier chosen for one shape is wrong for another in a direction you cannot predict from the
+source. We used 1.8× for the 50-Room broadcast, which over-paid by 46% (0.188 MON), and 2.5× for
+the fraud-proof demo, which over-paid a further 0.049 MON on the post alone. Both were safer than
+the 2.42× under-estimate that killed a transaction outright, and all three were avoidable.
+
+**Measure each call shape against the deployed contract.** A multiplier is a guess with a
+confidence interval nobody computed.
 
 ## What changed
 
