@@ -12,20 +12,19 @@ import {
   addressUrl,
   RPC_URLS,
   checkpoint,
-  connect,
-  marketAbi,
   provenFloor,
-  publicClient,
   roomsOpened,
-  txUrl,
 } from "./chain.js";
+import { mountRig } from "./rig.js";
+import { mountPredict } from "./predict.js";
+import { mountCompose, draftSpec } from "./compose.js";
+import { ROOM_IDS } from "./deployments.js";
 import { DEPLOYMENTS, EXPLORER } from "./deployments.js";
 import { beacon } from "./beacon.js";
 import {
   decodeSpec,
   deriveEpoch,
   deriveSeries,
-  DrandClient,
   EVMNET,
   Family,
   epochOf,
@@ -73,12 +72,6 @@ function fmt(v: bigint, decimals = 4): string {
   const frac = (a % WAD).toString().padStart(18, "0").slice(0, decimals);
   return `${neg ? "-" : ""}${whole.toLocaleString("en-US")}${decimals ? "." + frac : ""}`;
 }
-
-const el = (html: string): HTMLElement => {
-  const d = document.createElement("div");
-  d.innerHTML = html.trim();
-  return d.firstElementChild as HTMLElement;
-};
 
 const app = document.getElementById("app")!;
 // Fails over across the public mirrors; see beacon.ts.
@@ -295,6 +288,83 @@ async function verifyPanel(room: Room): Promise<string> {
   </div>`;
 }
 
+// ── the interactive half ─────────────────────────────────────────────────────────────────────
+//
+// The panels above prove things at the reader. These three let them find out for themselves, in
+// the order that builds: make a Room, discover you cannot predict it, discover you cannot fake it.
+
+/**
+ * Finds a finalised epoch to let a visitor attack.
+ *
+ * `provenClose` only acknowledges prices from a **finalised** checkpoint, so the panel needs one
+ * that exists. `ROOM_IDS[0]` is the Room the live demonstrations ran on, which makes it the cheap
+ * first guess; if its epoch 0 is not final the search widens rather than the panel lying about
+ * what it found.
+ */
+async function findFinalEpoch(
+  rooms: Room[],
+): Promise<{ room: Room; epoch: bigint; root: string } | null> {
+  const first = rooms.find((r) => r.roomId.toLowerCase() === ROOM_IDS[0].toLowerCase());
+  const order = first ? [first, ...rooms.filter((r) => r !== first)] : rooms;
+
+  for (const room of order.slice(0, 6)) {
+    for (let e = 0n; e < 2n; e++) {
+      const cp = await checkpoint(room.roomId as `0x${string}`, e);
+      if (cp && cp.status === "Final") return { room, epoch: e, root: cp.merkleRoot };
+    }
+  }
+  return null;
+}
+
+async function mountInteractive(): Promise<void> {
+  const compose = document.getElementById("compose");
+  const predict = document.getElementById("predict");
+  const rig = document.getElementById("rig");
+
+  // Each panel is mounted independently: a beacon mirror failing should cost the visitor one toy,
+  // not the page.
+  if (compose && predict) {
+    await mountCompose(compose, drand, {
+      floor: state.floor ?? 0n,
+      onUse: (spec) => {
+        void mountPredict(predict, spec, drand);
+        predict.scrollIntoView({ behavior: "smooth", block: "center" });
+      },
+    }).catch((err) => {
+      compose.innerHTML = `<div class="label">open your own room</div>
+        <p class="note" style="color:var(--bad)">${(err as Error).message}</p>`;
+    });
+  }
+
+  if (predict) {
+    await mountPredict(predict, draftSpec(0n), drand).catch((err) => {
+      predict.innerHTML = `<div class="label">call the next tick</div>
+        <p class="note" style="color:var(--bad)">${(err as Error).message}</p>`;
+    });
+  }
+
+  if (rig) {
+    const target = await findFinalEpoch(state.rooms);
+    if (!target) {
+      rig.innerHTML = `<div class="label">try to rig it</div>
+        <span class="badge dim">no finalised epoch yet</span>
+        <p class="note" style="margin-top:12px">
+          Nothing has been committed and finalised on the Rooms this page checked, so there is no
+          settled price to attack. The panel refuses to invent one.
+        </p>`;
+      return;
+    }
+    await mountRig(
+      rig,
+      { spec: target.room.spec, epoch: target.epoch, committedRoot: target.root },
+      drand,
+    ).catch((err) => {
+      rig.innerHTML = `<div class="label">try to rig it</div>
+        <p class="note" style="color:var(--bad)">${(err as Error).message}</p>`;
+    });
+  }
+}
+
 // ── boot ─────────────────────────────────────────────────────────────────────────────────────
 
 function shell(body: string): void {
@@ -419,9 +489,22 @@ async function main(): Promise<void> {
         </table>
       </div>
     </div>
-    <div id="panels"></div>`);
+    <div id="panels"></div>
+
+    <hr class="rule" style="margin:44px 0" />
+    <span class="eyebrow">Find out for yourself</span>
+    <h2 class="display-sm" style="margin:12px 0 10px;font-size:30px">Three things you can try</h2>
+    <p class="note" style="margin:0 0 26px;max-width:66ch">
+      Everything above is evidence presented to you. Everything below hands you the controls. None
+      of it needs a wallet, and none of it can cost you anything.
+    </p>
+
+    <div class="panel" id="compose"></div>
+    <div class="panel" id="predict"></div>
+    <div class="panel" id="rig"></div>`);
 
   if (state.selected) await loadChart();
+  await mountInteractive();
 }
 
 void main().catch((err) => {

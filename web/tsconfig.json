@@ -1,0 +1,27 @@
+{
+  "//": "Typechecking only. esbuild does the bundling and ignores types entirely, which means a type error reaches the browser silently unless something like this runs in CI.",
+  "//paths": "paths below mirrors the alias in build.mjs: the reference SDK imports @noble subpaths that 1.8 does not list in its exports map, so esbuild resolves them as file paths and tsc has to do the same or it disagrees with the bundle that actually ships.",
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["es2022", "dom", "dom.iterable"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitOverride": true,
+    "exactOptionalPropertyTypes": false,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@noble/hashes/*": ["./node_modules/@noble/hashes/*"],
+      "@noble/curves/*": ["./node_modules/@noble/curves/*"]
+    },
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "types": []
+  },
+  "include": ["src/**/*.ts"]
+}

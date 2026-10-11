@@ -291,5 +291,63 @@ button.primary:hover { background: var(--accent); border-color: var(--accent); }
 }
 #app button:hover { border-color: var(--text); }
 
+/* `#app button` is an id selector and out-specifies `button.primary`, so the emphasised button in
+   the app was quietly rendering as an ordinary one. Restated at matching weight. */
+#app button.primary { background: var(--text); color: var(--accent-ink); border-color: var(--text); font-weight: 700; }
+#app button.primary:hover { background: var(--accent); border-color: var(--accent); }
+
+#app button:disabled { color: var(--dimmer); border-color: var(--rule); cursor: not-allowed; }
+#app button:disabled:hover { border-color: var(--rule); }
+
+/* Text entry, for the price a visitor invents in the rig panel. */
+#app input[type="text"] {
+  background: var(--ink);
+  color: var(--text);
+  border: 1px solid var(--rule-bright);
+  border-radius: 0;
+  padding: 13px 14px;
+  font: 500 13px/1 var(--mono);
+  letter-spacing: .04em;
+}
+#app input[type="text"]:focus { outline: none; border-color: var(--accent); }
+
+/* Sliders. The platform default is a blue pill with rounded corners, which is the one shape this
+   design system does not contain, so both tracks and both thumbs are restated by hand. */
+#app input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 28px;
+  background: transparent;
+  cursor: pointer;
+}
+#app input[type="range"]::-webkit-slider-runnable-track {
+  height: 2px;
+  background: var(--rule-bright);
+}
+#app input[type="range"]::-moz-range-track {
+  height: 2px;
+  background: var(--rule-bright);
+}
+#app input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -6px;
+  background: var(--accent);
+  border: 0;
+  border-radius: 0;
+}
+#app input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: var(--accent);
+  border: 0;
+  border-radius: 0;
+}
+#app input[type="range"]:focus { outline: none; }
+#app input[type="range"]:focus::-webkit-slider-thumb { background: var(--text); }
+#app input[type="range"]:focus::-moz-range-thumb { background: var(--text); }
+
 /* The chart carries the one gradient the system allows outside the hero. */
 #app svg { border: 1px solid var(--rule); background: var(--ink); }
