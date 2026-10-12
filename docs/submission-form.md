@@ -233,3 +233,72 @@ ONE HONEST NOTE
 
 Nothing runs unattended. One Room has a finalised epoch and one settled market; every checkpoint, floor advance and settlement so far was a command somebody typed. The app reports that plainly rather than hiding it, so a Room showing "no checkpoint posted yet" is the system being honest, not broken.
 ```
+
+---
+
+## Pitch video script (up to 2 minutes)
+
+Solo builder, under Cracked Studio. Read at a normal pace this lands at about 1:50, which leaves
+room to breathe. Say it in your own words rather than reading it flat — the one thing a pitch video
+has that a demo does not is a person.
+
+**On camera for the first and last beats at minimum.** The form asks you to introduce your team, and
+a 2-minute video with no human in it reads as avoidance. The middle can be screen or b-roll.
+
+---
+
+### 0:00 — who (15s) · on camera
+
+> "I'm [name]. I build under Cracked Studio, and I've been working on Croom — a way to make markets
+> whose price nobody can rig. Including me."
+
+### 0:15 — the problem (30s) · b-roll or on camera
+
+> "Every market needs a price, and every price comes from someone you have to trust. An oracle you
+> trust not to lie, not to be bribed, not to go down."
+>
+> "Synthetic markets have it worse. If you've ever played a crash game or an on-chain dice site,
+> the house generated the number you lost to. They'll show you a seed commitment and call it
+> provably fair — but that only proves they didn't change their mind after you bet. It proves
+> nothing about how the seed was chosen in the first place."
+
+### 0:45 — what Croom is (30s) · screen: the app
+
+> "Croom takes the house out of it. The prices come from drand — a public randomness beacon run by
+> organisations that don't know we exist, publishing a signed value every three seconds that nobody
+> can predict or skip."
+>
+> "A Room is just a recipe for turning that randomness into a price. Hand the recipe and the public
+> beacon to any two people and they get byte-identical prices, forever, without talking to each
+> other. The price isn't reported. It's derived. There's no server to trust, and nothing for me to
+> tamper with."
+
+### 1:15 — why you're building it (25s) · on camera
+
+> "I kept coming back to the same thing: every 'provably fair' system I looked at was asking me to
+> trust the person who profits when I lose. That's not a technical gap, it's a structural one, and
+> you can't audit your way out of it. You have to remove the party."
+>
+> "So the chain here doesn't supply the price. It only catches anyone who lies about it — and the
+> proof takes one transaction, costs the challenger nothing but gas, and takes the liar's bond."
+
+### 1:40 — what actually exists (20s) · screen: transactions
+
+> "This isn't a deck. On Monad testnet, somebody posted a price that was wrong by one unit at the
+> eighteenth decimal place, and lost their bond to an address that re-derived it from the beacon
+> and proved it. A market settled against proven prices and paid a winner out. There are
+> transaction hashes for both."
+>
+> "And you can try to rig it yourself, right now, in a browser, with no wallet. It'll refuse you."
+
+---
+
+### What to avoid
+
+- Don't say "we" if you're solo. One person who shipped this is a stronger story than a vague team.
+- Don't claim traction. One market, two accounts, five hundredths of a MON — if volume comes up,
+  say that plainly. The mechanism is the claim, not the numbers.
+- Don't walk through code. That's the technical demo's job, and the form says so explicitly.
+- Mention that a Rust reference implementation existed before this one, and that the Solidity is
+  checked bit-for-bit against it across 20,000 rounds. It's the fastest way to signal this wasn't
+  started on Friday.
