@@ -1,0 +1,8 @@
+# Cloudflare Pages — static hosting for the Croom site.
+#
+# The deployable directory is site/, assembled by bin/build-site.sh. Never point this at web/:
+# that directory contains web/.env (a keyed RPC endpoint) and web/node_modules, and Pages uploads
+# whatever directory it is given.
+name = "croom"
+pages_build_output_dir = "site"
+compatibility_date = "2026-10-12"

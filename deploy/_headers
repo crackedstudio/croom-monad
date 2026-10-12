@@ -1,0 +1,17 @@
+# The app talks to Monad RPC and the drand mirrors from the browser, and nothing else.
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+# Hashed in the filename's query string, so it can be cached hard.
+/dist/bundle.js
+  Cache-Control: public, max-age=31536000, immutable
+/assets/croom.css
+  Cache-Control: public, max-age=31536000, immutable
+
+# The pages carry the hashes, so they must never be cached.
+/
+  Cache-Control: public, max-age=0, must-revalidate
+/app/
+  Cache-Control: public, max-age=0, must-revalidate

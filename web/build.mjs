@@ -2,12 +2,30 @@ import { createHash } from "node:crypto";
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { context } from "esbuild";
 
-const envText = readFileSync(new URL("./.env", import.meta.url), "utf8");
-const configuredRpc = envText
-  .split(/\r?\n/)
-  .map((line) => line.match(/^\s*MONAD_TESTNET_RPC\s*=\s*(.*?)\s*$/)?.[1])
-  .find(Boolean)
-  ?.replace(/^(?:"(.*)"|'(.*)')$/, (_, doubleQuoted, singleQuoted) => doubleQuoted ?? singleQuoted);
+// The RPC endpoint is COMPILED INTO the bundle, so whatever is set here is readable by anyone who
+// views source on the deployed site. A keyed endpoint belongs in a local build only.
+//
+// An explicit MONAD_TESTNET_RPC in the environment wins over the .env file, including when it is
+// empty — `MONAD_TESTNET_RPC= npm run build` is how a public build is made keyless on purpose. The
+// app falls back to three public endpoints, so a keyless build is fully functional.
+function readEnvFile() {
+  try {
+    return readFileSync(new URL("./.env", import.meta.url), "utf8");
+  } catch {
+    return ""; // No .env is normal: CI and public builds do not have one.
+  }
+}
+
+const configuredRpc =
+  process.env.MONAD_TESTNET_RPC !== undefined
+    ? process.env.MONAD_TESTNET_RPC
+    : readEnvFile()
+        .split(/\r?\n/)
+        .map((line) => line.match(/^\s*MONAD_TESTNET_RPC\s*=\s*(.*?)\s*$/)?.[1])
+        .find(Boolean)
+        ?.replace(/^(?:"(.*)"|'(.*)')$/, (_, doubleQuoted, singleQuoted) => doubleQuoted ?? singleQuoted);
+
+if (!configuredRpc) console.log("rpc: public endpoints only (no key compiled in)");
 
 const buildContext = await context({
   entryPoints: ["src/main.ts"],

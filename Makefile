@@ -169,6 +169,19 @@ web:
 	$(PYTHON) bin/gen-addresses.py
 	cd web && npm install --silent && npm run build
 
+# ── the public site ──────────────────────────────────────────────────────────────────────────
+#
+# site/ is assembled by allowlist from web/, because web/ holds web/.env (a keyed RPC endpoint)
+# and web/node_modules, and `wrangler pages deploy` publishes whatever directory it is handed.
+# The bundle is rebuilt with no key compiled in; the app falls back to three public endpoints.
+
+site:
+	./bin/build-site.sh
+
+# Needs a Cloudflare login the first time: `npx wrangler login`.
+deploy-site: site
+	npx wrangler pages deploy
+
 # ── the live market round, one measured step at a time ───────────────────────────────────────
 #
 # Not one script with a blanket multiplier. A 2.5x multiplier on forge's Ethereum-priced estimate
