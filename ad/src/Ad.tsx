@@ -12,6 +12,7 @@
  * honest close it does accept.
  */
 import { loadFont } from "@remotion/fonts";
+import { Audio } from "@remotion/media";
 import {
   AbsoluteFill,
   interpolate,
@@ -317,6 +318,8 @@ export const Ad: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ backgroundColor: INK }}>
+      {/* Synthesised by make-audio.py. It pulses every three seconds because the beacon does. */}
+      <Audio src={staticFile("soundtrack.wav")} />
       <Grid />
       <Sequence from={0} durationInFrames={s(5.5)} premountFor={s(1)}>
         <Hook />
