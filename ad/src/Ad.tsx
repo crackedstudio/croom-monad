@@ -40,6 +40,9 @@ void Promise.all([
 const W = 1920;
 const H = 1080;
 
+/** Where the Beacon scene sits in the film, in seconds. Shared by the cut and by its own clock. */
+const BEACON_START = 10.5;
+
 /** The visible grid the brand uses, so the ad sits in the same world as the site. */
 const Grid: React.FC = () => (
   <AbsoluteFill style={{ opacity: 0.5 }}>
@@ -167,9 +170,13 @@ const NotAnOracle: React.FC = () => {
 const Beacon: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  // One pulse every three seconds, because that is the beacon's actual period.
-  const beat = Math.floor(frame / (3 * fps));
-  const since = frame - beat * 3 * fps;
+  // One pulse every three seconds, because that is the beacon's actual period — and the period is
+  // measured from the start of the FILM, not from the start of this scene. useCurrentFrame() is
+  // sequence-relative, so the scene's own offset has to be added back; without it the squares pulse
+  // at 10.5s and 13.5s while the soundtrack pulses at 12s and 15s, and the two visibly disagree.
+  const global = frame + BEACON_START * fps;
+  const beat = Math.floor(global / (3 * fps));
+  const since = global - beat * 3 * fps;
   const pulse = interpolate(since, [0, 10], [1, 0], { extrapolateRight: "clamp" });
 
   return (
@@ -202,7 +209,7 @@ const Beacon: React.FC = () => {
 const Rig: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const refusedAt = Math.round(3.4 * fps);
+  const refusedAt = Math.round(3.0 * fps); // 18.0s: bar 12, on the beat.
   const stamp = spring({ frame: frame - refusedAt, fps, config: { damping: 14, stiffness: 180 } });
   const shown = frame < Math.round(1.7 * fps) ? "99.999827" : "99.999827000000000001";
   const changed = frame >= Math.round(1.7 * fps);
@@ -321,22 +328,22 @@ export const Ad: React.FC = () => {
       {/* Synthesised by make-audio.py. It pulses every three seconds because the beacon does. */}
       <Audio src={staticFile("soundtrack.wav")} />
       <Grid />
-      <Sequence from={0} durationInFrames={s(5.5)} premountFor={s(1)}>
+      <Sequence from={0} durationInFrames={s(6)} premountFor={s(1)}>
         <Hook />
       </Sequence>
-      <Sequence from={s(5.5)} durationInFrames={s(4.5)} premountFor={s(1)}>
+      <Sequence from={s(6)} durationInFrames={s(4.5)} premountFor={s(1)}>
         <NotAnOracle />
       </Sequence>
-      <Sequence from={s(10)} durationInFrames={s(5)} premountFor={s(1)}>
+      <Sequence from={s(BEACON_START)} durationInFrames={s(4.5)} premountFor={s(1)}>
         <Beacon />
       </Sequence>
-      <Sequence from={s(15)} durationInFrames={s(7)} premountFor={s(1)}>
+      <Sequence from={s(15)} durationInFrames={s(7.5)} premountFor={s(1)}>
         <Rig />
       </Sequence>
-      <Sequence from={s(22)} durationInFrames={s(4.5)} premountFor={s(1)}>
+      <Sequence from={s(22.5)} durationInFrames={s(4.5)} premountFor={s(1)}>
         <Payout />
       </Sequence>
-      <Sequence from={s(26.5)} durationInFrames={s(3.5)} premountFor={s(1)}>
+      <Sequence from={s(27)} durationInFrames={s(3)} premountFor={s(1)}>
         <End url={url} />
       </Sequence>
     </AbsoluteFill>

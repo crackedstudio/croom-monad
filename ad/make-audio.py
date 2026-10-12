@@ -1,158 +1,196 @@
 #!/usr/bin/env python3
-"""Synthesises the ad's soundtrack. No samples, no licences, no dependencies.
+"""Composes the advert's soundtrack. Standard library only — no samples, no licences.
 
-The rhythm is not decoration. drand publishes a signed value every three seconds, so the track
-pulses every three seconds, and the beat the viewer feels is the thing the product is built on.
-At 30fps that is one pulse every 90 frames, landing on the same beats the Beacon scene animates.
+160 BPM in A minor, which is chosen rather than guessed: a bar is exactly 1.5 seconds, so drand's
+three-second period is two bars. The beacon is the downbeat. Every cut in the video lands on a bar
+line and the refusal lands on a beat, so the track and the edit agree without either being bent to
+fit the other.
 
-Everything is a sine, a sweep, or shaped noise, written straight to PCM. Headroom is kept and a
-soft limiter catches the one moment that would otherwise clip (the refusal, by design the loudest
-thing here).
+Arrangement across 20 bars:
+
+    bars  0-3   intro      arpeggio and hats
+    bars  4-6   build      bass and kick arrive
+    bars  7-9   beacon     full groove, the pulse foregrounded while it is being explained
+    bars 10-11  tension    stripped to the arpeggio over a riser
+    bar  12     THE HIT    everything stops for the refusal, then the beat returns heavier
+    bars 15-17  payout     lead an octave up, bells, the progression resolving major
+    bars 18-19  outro      the last chord left ringing
 """
 import math
 import random
 import struct
 import wave
 
-SR = 48_000
-DUR = 30.0
+from synth import SAW, SINE, SQUARE, TRI, SR, midi, noise, play, sweep
+
+BPM = 160
+BEAT = 60.0 / BPM          # 0.375s
+BAR = BEAT * 4             # 1.5s
+BARS = 20
+DUR = BARS * BAR           # 30.0s
 N = int(SR * DUR)
 
-random.seed(0xC0FFEE)  # Deterministic: the same file every time it is generated.
+rng = random.Random(0xC0FFEE)
 buf = [0.0] * N
 
 
-def at(t: float) -> int:
-    return max(0, min(N - 1, int(t * SR)))
-
-
-def add(t: float, samples) -> None:
-    """Mixes a generator of samples in at time t, clipped to the buffer."""
-    i = at(t)
+def mix(t: float, samples, gain: float = 1.0) -> None:
+    i = int(t * SR)
+    if i < 0:
+        samples = samples[-i:]
+        i = 0
     for k, v in enumerate(samples):
         j = i + k
         if j >= N:
             break
-        buf[j] += v
+        buf[j] += v * gain
 
 
-def thump(freq_from: float, freq_to: float, length: float, amp: float, tau: float, click: float = 0.0):
-    """A kick: a pitch sweeping down, an exponential decay, and an optional transient."""
-    n = int(length * SR)
-    phase = 0.0
-    out = []
-    for k in range(n):
-        x = k / n
-        f = freq_from + (freq_to - freq_from) * (x ** 0.35)
-        phase += 2 * math.pi * f / SR
-        env = math.exp(-(k / SR) / tau)
-        v = math.sin(phase) * env * amp
-        if click and k < int(0.010 * SR):
-            v += random.uniform(-1, 1) * click * math.exp(-(k / SR) / 0.004)
-        out.append(v)
-    return out
+# ── harmony ──────────────────────────────────────────────────────────────────────────────────
+# i - VI - III - VII in A minor. Four bars, looping for the whole piece.
+ROOTS = [45, 41, 48, 43]                        # A2  F2  C3  G2
+ARPS = [[69, 72, 76, 72],                       # A4 C5 E5 C5
+        [65, 69, 72, 69],                       # F4 A4 C5 A4
+        [67, 72, 76, 72],                       # G4 C5 E5 C5
+        [67, 71, 74, 71]]                       # G4 B4 D5 B4
+PADS = [[57, 60, 64], [53, 57, 60], [55, 60, 64], [55, 59, 62]]
+
+# The hook: one four-bar phrase, two notes to a beat where it moves.
+#   bar: [(beat, midi, beats_long), ...]
+HOOK = [
+    [(0, 81, 1), (1, 84, 1), (2, 83, 1), (3, 81, 1)],   # A5 C6 B5 A5
+    [(0, 79, 1), (1, 81, 1), (2, 77, 2)],               # G5 A5 F5
+    [(0, 76, 1), (1, 79, 1), (2, 84, 1), (3, 79, 1)],   # E5 G5 C6 G5
+    [(0, 74, 1), (1, 79, 1), (2, 83, 2)],               # D5 G5 B5
+]
 
 
-def chime(freq: float, length: float, amp: float, tau: float = 0.5):
-    """A soft bell: a fundamental plus a quiet octave and fifth."""
-    n = int(length * SR)
-    out = []
-    for k in range(n):
-        t = k / SR
-        env = math.exp(-t / tau) * min(1.0, k / (0.004 * SR))
-        out.append(
-            (
-                math.sin(2 * math.pi * freq * t)
-                + 0.32 * math.sin(2 * math.pi * freq * 2 * t)
-                + 0.16 * math.sin(2 * math.pi * freq * 3 * t)
-            )
-            * env
-            * amp
-        )
-    return out
+def bar_t(bar: int, beat: float = 0.0) -> float:
+    return bar * BAR + beat * BEAT
 
 
-def tick(amp: float = 0.05, length: float = 0.035):
-    """Punctuation for a scene change. Shaped noise, gone before it is noticed."""
-    n = int(length * SR)
-    prev = 0.0
-    out = []
-    for k in range(n):
-        white = random.uniform(-1, 1)
-        prev = prev * 0.72 + white * 0.28  # Crude low-pass, so it reads as a knock not a hiss.
-        out.append(prev * math.exp(-(k / SR) / 0.009) * amp)
-    return out
+# ── drums ────────────────────────────────────────────────────────────────────────────────────
+def kick(t: float, amp: float = 0.62) -> None:
+    mix(t, sweep(140, 48, 0.42, amp, 0.17))
+    mix(t, noise(0.012, amp * 0.3, 0.004, rng, colour=0.35))
 
 
-def swell(length: float, amp: float):
-    """Rising shaped noise, for the lift into the end card."""
-    n = int(length * SR)
-    prev = 0.0
-    out = []
-    for k in range(n):
-        x = k / n
-        prev = prev * 0.9 + random.uniform(-1, 1) * 0.1
-        out.append(prev * (x ** 2.2) * amp)
-    return out
+def clap(t: float, amp: float = 0.22) -> None:
+    # Three near-copies a few milliseconds apart is what makes a clap sound like hands.
+    for off in (0.0, 0.009, 0.019):
+        mix(t + off, noise(0.16, amp * (1.0 - off * 18), 0.045, rng, colour=0.12))
 
 
-# ── the bed ──────────────────────────────────────────────────────────────────────────────────
-# Three quiet sines a fifth and an octave apart. Low enough to feel rather than hear, which keeps
-# the voice of the piece on the pulses.
-for k in range(N):
-    t = k / SR
-    breathe = 0.55 + 0.45 * math.sin(2 * math.pi * t / 11.0)
-    fade_in = min(1.0, t / 1.6)
-    fade_out = 1.0 if t < 28.8 else max(0.0, (30.0 - t) / 1.2)
-    buf[k] += (
-        0.030 * math.sin(2 * math.pi * 55.0 * t)
-        + 0.018 * math.sin(2 * math.pi * 82.5 * t)
-        + 0.009 * math.sin(2 * math.pi * 110.0 * t)
-    ) * breathe * fade_in * fade_out
+def hat(t: float, amp: float = 0.07, open_: bool = False) -> None:
+    mix(t, noise(0.12 if open_ else 0.045, amp, 0.05 if open_ else 0.013, rng, colour=0.02))
+
+
+def beacon(t: float, amp: float = 0.5) -> None:
+    """The three-second pulse. Deliberately sub-heavy so it is felt under everything else."""
+    mix(t, sweep(92, 42, 1.0, amp, 0.30))
+
+
+# ── the arrangement ──────────────────────────────────────────────────────────────────────────
+for bar in range(BARS):
+    chord = bar % 4
+    root = ROOTS[chord]
+    arp = ARPS[chord]
+
+    intro = bar < 4
+    build = 4 <= bar < 7
+    full = 7 <= bar < 10
+    tension = 10 <= bar < 12
+    heavy = 12 <= bar < 15
+    payout = 15 <= bar < 18
+    outro = bar >= 18
+
+    # Arpeggio — eighth notes, present almost throughout, the spine of the piece.
+    if not outro:
+        amp = 0.075 if intro else 0.055 if tension else 0.105 if payout else 0.085
+        for e in range(8):
+            n = arp[e % 4] + (12 if payout else 0)
+            mix(bar_t(bar, e * 0.5),
+                play(n, BEAT * 0.46, amp=amp, table=SQUARE if intro else SAW,
+                     a=0.004, d=0.06, s=0.28, r=0.04, detune=0.004))
+
+    # Pad — quiet sustained chord, glues the whole thing together.
+    if not intro:
+        for n in PADS[chord]:
+            mix(bar_t(bar), play(n, BAR * 0.98, amp=0.030, table=TRI,
+                                 a=0.12, d=0.3, s=0.75, r=0.25, detune=0.009))
+
+    # Bass.
+    if build or full or heavy or payout:
+        amp = 0.26 if (heavy or full) else 0.20
+        pattern = [0, 0, 12, 0, 0, 12, 0, 7]
+        for e, off in enumerate(pattern):
+            mix(bar_t(bar, e * 0.5),
+                play(root + off, BEAT * 0.44, amp=amp, table=SAW,
+                     a=0.004, d=0.09, s=0.45, r=0.04))
+
+    # Kick and clap.
+    if build or full or heavy or payout:
+        kick(bar_t(bar, 0))
+        kick(bar_t(bar, 2), amp=0.55)
+        if full or heavy or payout:
+            clap(bar_t(bar, 1))
+            clap(bar_t(bar, 3))
+        if heavy:
+            kick(bar_t(bar, 3.5), amp=0.42)
+
+    # Hats.
+    if not intro or bar >= 2:
+        if not tension:
+            for e in range(8):
+                hat(bar_t(bar, e * 0.5), amp=0.055 if e % 2 else 0.078, open_=(e == 7))
+
+    # The hook, once the groove is established and again, higher, over the payout.
+    if full or heavy or payout:
+        for beat_i, note, length in HOOK[chord]:
+            mix(bar_t(bar, beat_i),
+                play(note + (12 if payout else 0), BEAT * length * 0.92,
+                     amp=0.115 if payout else 0.095, table=SAW,
+                     a=0.008, d=0.10, s=0.55, r=0.08, detune=0.007))
+
+    # Outro: the last chord, left to ring.
+    if bar == 18:
+        for n in (45, 57, 60, 64, 69):
+            mix(bar_t(bar), play(n, BAR * 2.0, amp=0.075, table=SAW,
+                                 a=0.01, d=0.5, s=0.5, r=1.4, detune=0.008))
+        kick(bar_t(bar), amp=0.7)
+        mix(bar_t(bar), noise(1.4, 0.10, 0.5, rng, colour=0.05))
 
 # ── the beacon, every three seconds ──────────────────────────────────────────────────────────
 for i in range(10):
     t = i * 3.0
-    if t >= DUR:
-        break
-    # The pulses under the Beacon scene are the loudest, because that is when they are explained.
-    loud = 1.25 if 10.0 <= t < 15.0 else 1.0
-    add(t, thump(92, 55, 0.9, 0.42 * loud, 0.26, click=0.05))
+    if t < DUR:
+        beacon(t, amp=0.62 if 10.5 <= t < 15.0 else 0.46)
 
-# ── scene punctuation ────────────────────────────────────────────────────────────────────────
-for t in (5.5, 10.0, 22.0):
-    add(t, tick())
+# ── the refusal at 18.0s, bar 12, on the beat ────────────────────────────────────────────────
+REFUSED = 18.0
+# A riser through the two tension bars, then silence for an instant, then the hit.
+mix(REFUSED - 3.0, [v * (k / (3.0 * SR)) ** 2 for k, v in
+                    enumerate(noise(3.0, 0.22, 99.0, rng, colour=0.55))])
+for k in range(int((REFUSED - 0.06) * SR), int(REFUSED * SR)):
+    buf[k] *= 0.25                                   # the gap before the impact
+mix(REFUSED, sweep(260, 34, 1.9, 0.92, 0.45, curve=0.28))
+mix(REFUSED, noise(0.9, 0.30, 0.24, rng, colour=0.06))
 
-# ── the refusal: the loudest moment, and the point of the ad ─────────────────────────────────
-REFUSED = 15.0 + 3.4
-add(REFUSED - 0.5, swell(0.5, 0.16))
-add(REFUSED, thump(240, 38, 1.5, 0.78, 0.42, click=0.22))
+# ── the payout: bells over the brighter section ──────────────────────────────────────────────
+for t, n in ((22.5 + BEAT * 2, 88), (22.5 + BAR + BEAT * 2, 91), (22.5 + BAR * 2, 93)):
+    mix(t, play(n, 1.6, amp=0.085, table=SINE, a=0.004, d=0.9, s=0.0, r=0.4))
 
-# ── the payout ───────────────────────────────────────────────────────────────────────────────
-add(22.0 + 24 / 30, chime(392.0, 1.4, 0.085, tau=0.45))   # staked
-add(22.0 + 38 / 30, chime(587.33, 2.0, 0.125, tau=0.75))  # received, a fifth above
-
-# ── the end card ─────────────────────────────────────────────────────────────────────────────
-add(26.5 - 0.7, swell(0.7, 0.2))
-add(26.5, thump(110, 55, 2.0, 0.5, 0.75, click=0.07))
-add(26.6, chime(220.0, 3.0, 0.07, tau=1.6))
-
-# ── master: soft limit, then a clean tail ────────────────────────────────────────────────────
-peak = max(abs(v) for v in buf)
-print(f"peak before limiting: {peak:.3f}")
+# ── master ───────────────────────────────────────────────────────────────────────────────────
+print(f"peak before limiting: {max(abs(v) for v in buf):.3f}")
 for k in range(N):
-    v = buf[k] * 0.92
-    # tanh rather than a hard clip: the refusal is meant to hit, not to crackle.
-    buf[k] = math.tanh(v * 1.15) * 0.87
-
-for k in range(int(29.4 * SR), N):  # Guarantee silence at the cut.
-    buf[k] *= max(0.0, (N - k) / (0.6 * SR))
+    buf[k] = math.tanh(buf[k] * 1.05) * 0.88
+for k in range(int(29.3 * SR), N):
+    buf[k] *= max(0.0, (N - k) / (0.7 * SR))
 
 with wave.open("public/soundtrack.wav", "w") as w:
     w.setnchannels(1)
     w.setsampwidth(2)
     w.setframerate(SR)
     w.writeframes(b"".join(struct.pack("<h", int(max(-1.0, min(1.0, v)) * 32767)) for v in buf))
-
 print(f"peak after limiting:  {max(abs(v) for v in buf):.3f}")
-print("public/soundtrack.wav")
+print(f"{BARS} bars at {BPM} BPM = {DUR:.1f}s -> public/soundtrack.wav")

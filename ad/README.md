@@ -17,20 +17,36 @@ an advert for it should not fabricate its own:
 
 ## The soundtrack
 
-`make-audio.py` synthesises it — no samples, no licences, no dependencies beyond the standard
-library:
+Composed, not sourced. `synth.py` is a wavetable synthesiser and `make-audio.py` is the score;
+between them they need nothing beyond the standard library, so there are no samples and no licences
+to worry about on a submission whose whole argument is "check it yourself".
 
 ```bash
-python3 make-audio.py     # writes public/soundtrack.wav
+python3 make-audio.py     # ~4s -> public/soundtrack.wav
 ```
 
-**It pulses every three seconds because drand does.** At 30fps that is one pulse every 90 frames,
-landing on the same beats the Beacon scene animates, so the rhythm a viewer feels is the thing the
-product is built on rather than a bed chosen to fill silence.
+**160 BPM in A minor, and the tempo is chosen rather than guessed.** A bar is exactly 1.5 seconds,
+so drand's three-second period is two bars and the beacon lands on the downbeat. Every cut in the
+video sits on a bar line and the refusal sits on a beat, so the track and the edit agree without
+either being bent to fit the other.
 
-Everything is a sine, a pitch sweep, or shaped noise. The refusal at 18.4s is deliberately the
-loudest moment in the piece — about thirteen times the level of the quiet between pulses — because
-it is the point of the advert. A `tanh` soft limiter catches it so it hits without crackling.
+| bars | section | |
+| --- | --- | --- |
+| 0–3 | intro | arpeggio and hats |
+| 4–6 | build | bass and kick arrive |
+| 7–9 | beacon | full groove, the pulse foregrounded while it is being explained |
+| 10–11 | tension | stripped back over a riser |
+| 12 | **the hit** | everything stops for the refusal, then the beat returns heavier |
+| 15–17 | payout | lead an octave up, bells, resolving brighter |
+| 18–19 | outro | the last chord left ringing |
+
+The refusal at 18.0s is the loudest moment by a wide margin, with a near-silent gap in front of it
+so it lands. A `tanh` limiter keeps it from crackling.
+
+Additive synthesis was tried first and was far too slow — a band-limited saw is a dozen sine calls
+per sample, and at 48kHz across thirty seconds of polyphony that is hundreds of millions of them.
+Each waveform is now built once into a 2048-point table and played back by a phase accumulator,
+which renders the whole track in about four seconds.
 
 Fonts are loaded from `public/` rather than from Google Fonts: the network fetch stalls
 `delayRender()` in the render browser, and these are the same files the logo was rasterised with.
