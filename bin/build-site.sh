@@ -9,9 +9,12 @@
 # excluded by denylist: only the files named here ship, and a new secret dropped into web/ later
 # cannot be published by accident.
 #
-# The bundle is built with MONAD_TESTNET_RPC empty, because whatever endpoint is configured gets
-# compiled into the JavaScript and is readable by anyone who views source. The app falls back to
-# three public endpoints.
+# Whatever endpoint is configured gets compiled into the JavaScript and is readable by anyone who
+# views source, so the default is to compile none and lean on the three public endpoints.
+#
+# CROOM_PUBLIC_RPC is the deliberate exception: an endpoint meant to be public, restricted at the
+# provider to this site's domain. It is checked before it ships, because an RPC that 404s is worse
+# than no RPC at all, and it is the one keyed-looking string the secret guard below will tolerate.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -19,8 +22,27 @@ OUT=site
 rm -rf "$OUT"
 mkdir -p "$OUT"
 
-MONAD_TESTNET_RPC= make web >/dev/null
-echo "built with public endpoints only"
+PUBLIC_RPC="${CROOM_PUBLIC_RPC:-}"
+
+if [ -n "$PUBLIC_RPC" ]; then
+  echo "checking $(echo "$PUBLIC_RPC" | sed 's#\(://[^/]*\).*#\1/…#')"
+  CHAIN=$(curl -s --max-time 15 -X POST "$PUBLIC_RPC" \
+    -H 'content-type: application/json' \
+    --data '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}' \
+    | sed -n 's/.*"result":"\([^"]*\)".*/\1/p')
+  if [ "$CHAIN" != "0x279f" ]; then
+    echo "REFUSING TO SHIP: CROOM_PUBLIC_RPC did not answer as Monad testnet (got '${CHAIN:-no answer}', wanted 0x279f)." >&2
+    exit 1
+  fi
+  echo "endpoint answers as Monad testnet (0x279f)"
+fi
+
+MONAD_TESTNET_RPC="$PUBLIC_RPC" make web >/dev/null
+if [ -n "$PUBLIC_RPC" ]; then
+  echo "built with the public endpoint compiled in"
+else
+  echo "built with public endpoints only"
+fi
 
 cp web/index.html "$OUT/"
 cp -R web/assets "$OUT/assets"
@@ -43,11 +65,20 @@ cp deploy/404.html "$OUT/404.html"
 
 # Two checks, both precise. A generic "32 hex characters" rule was tried first and matched every
 # zero-padded EVM word in the bundle, which is the kind of guard people learn to ignore.
-if grep -rqE 'infura|alchemy|quicknode|chainstack|blastapi|nodereal' "$OUT"; then
-  echo "REFUSING TO SHIP: a keyed RPC provider appears in the output." >&2
-  grep -rlE 'infura|alchemy|quicknode|chainstack|blastapi|nodereal' "$OUT" >&2
-  exit 1
+# Any keyed provider in the output is a mistake, except the one endpoint deliberately published
+# through CROOM_PUBLIC_RPC. Stripping that exact string first means the check still catches
+# everything else, including a second key pasted into the wrong place.
+SCAN=$(mktemp -d)
+cp -R "$OUT"/. "$SCAN"/
+if [ -n "$PUBLIC_RPC" ]; then
+  find "$SCAN" -type f -exec perl -pi -e "s/\Q$PUBLIC_RPC\E//g" {} + 2>/dev/null || true
 fi
+if grep -rqE 'infura|alchemy|quicknode|chainstack|blastapi|nodereal' "$SCAN"; then
+  echo "REFUSING TO SHIP: a keyed RPC provider appears in the output." >&2
+  grep -rlE 'infura|alchemy|quicknode|chainstack|blastapi|nodereal' "$SCAN" >&2
+  rm -rf "$SCAN"; exit 1
+fi
+rm -rf "$SCAN"
 
 # Whatever is actually configured locally, verbatim. This stays correct when the secret changes.
 if [ -f web/.env ]; then
