@@ -6,7 +6,7 @@ type Room {
   openedAt: BigInt!            # block number
   openedTx: String!
   checkpoints: [Checkpoint!]! @derivedFrom(field: "room")
-  markets: [Market!]! @derivedFrom(field: "room")
+  markets: [MarketRound!]! @derivedFrom(field: "room")
 }
 
 """
@@ -36,8 +36,14 @@ type Checkpoint {
   leafLows: [BigInt!]!
 }
 
-"A parimutuel market over one window of a Room."
-type Market {
+"""
+A parimutuel market over one window of a Room.
+
+Named MarketRound rather than Market because `generated` exports contract handlers and entity
+types from one module, and config.yaml already has a contract called Market. Two bindings of the
+same name cannot both be exported, so the collision has to be resolved here.
+"""
+type MarketRound {
   id: ID!                      # marketId
   room: Room!
   startRound: BigInt!
@@ -55,7 +61,7 @@ type Market {
 
 type Stake {
   id: ID!                      # marketId-staker-side
-  market: Market!
+  market: MarketRound!
   staker: String!
   side: String!                # Up | Down
   amount: BigInt!

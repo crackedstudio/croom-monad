@@ -10,10 +10,10 @@ import {
   Market,
   Registry,
   type Checkpoint,
+  type MarketRound,
   type Protocol,
   type Room,
   type Stake,
-  type Market as MarketEntity,
 } from "generated";
 
 const PROTOCOL_ID = "croom";
@@ -115,7 +115,7 @@ Ladder.CheckpointRejected.handler(async ({ event, context }) => {
 // ── Market ───────────────────────────────────────────────────────────────────────────────────
 
 Market.MarketOpened.handler(async ({ event, context }) => {
-  const m: MarketEntity = {
+  const m: MarketRound = {
     id: event.params.marketId,
     room_id: event.params.roomId,
     startRound: event.params.startRound,
@@ -129,7 +129,7 @@ Market.MarketOpened.handler(async ({ event, context }) => {
     rake: undefined,
     openedAt: BigInt(event.block.number),
   };
-  context.Market.set(m);
+  context.MarketRound.set(m);
 
   const p = await protocol(context);
   context.Protocol.set({ ...p, markets: p.markets + 1n });
@@ -154,9 +154,9 @@ Market.Staked.handler(async ({ event, context }) => {
       };
   context.Stake.set(stake);
 
-  const market = await context.Market.get(event.params.marketId);
+  const market = await context.MarketRound.get(event.params.marketId);
   if (market) {
-    context.Market.set({
+    context.MarketRound.set({
       ...market,
       upTotal: s === "Up" ? market.upTotal + event.params.amount : market.upTotal,
       downTotal: s === "Down" ? market.downTotal + event.params.amount : market.downTotal,
@@ -168,9 +168,9 @@ Market.Staked.handler(async ({ event, context }) => {
 });
 
 Market.Settled.handler(async ({ event, context }) => {
-  const market = await context.Market.get(event.params.marketId);
+  const market = await context.MarketRound.get(event.params.marketId);
   if (!market) return;
-  context.Market.set({
+  context.MarketRound.set({
     ...market,
     state: "Settled",
     winner: side(event.params.winner),
@@ -194,7 +194,7 @@ Market.Claimed.handler(async ({ event, context }) => {
 });
 
 Market.Voided.handler(async ({ event, context }) => {
-  const market = await context.Market.get(event.params.marketId);
+  const market = await context.MarketRound.get(event.params.marketId);
   if (!market) return;
-  context.Market.set({ ...market, state: "Void" });
+  context.MarketRound.set({ ...market, state: "Void" });
 });
