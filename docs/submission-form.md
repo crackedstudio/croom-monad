@@ -317,83 +317,32 @@ Rendered and ready: `ad/out/croom-ad.mp4`. Upload it to YouTube or Loom unlisted
 real on-chain data in your app — not just installed, but actually driving a feature.**
 
 ```
-IT CLOSES A LIMITATION WE HAD ALREADY WRITTEN DOWN
+Our README listed "No indexer" under Known limitations before this bounty existed. The app read
+Room history from logs, and Monad caps eth_getLogs at 100 blocks — with our Registry at block
+68,240,012 and the head past 70,700,000, a Room opened today sat about twenty-five thousand
+sequential requests away. It only worked because our first fifty Rooms happened to be opened within
+a few blocks of each other.
 
-Before this bounty existed, our README listed "No indexer" under Known limitations. The frontend
-read Room history straight from the chain's logs, and Monad caps eth_getLogs at 100 blocks. Our
-Registry was deployed at block 68,240,012; the head is now past 70,700,000. A Room opened today sat
-roughly twenty-five thousand sequential requests away.
+HyperIndex closed that. Measured on the live app: 7 RPC round-trips became 1 query.
 
-It worked at all only because the first fifty Rooms were opened within a few blocks of each other,
-so the loop found them and stopped early. That is a property of our demo data, not of the protocol.
-Open one Room next week and the app would have ground through a quarter of a million blocks to find
-it, or given up.
+It drives the Room list, which the whole app is built on — every chart, spec table and verification
+panel starts from "which Rooms exist". The indexer covers Rooms, checkpoints, markets and stakes.
+Live at croom.crackedstudios.xyz/app — the panel under the contract addresses reads "indexed" and
+reports 50 Rooms, 2 checkpoints (1 rejected), 1 market, 1 settled. The rejected one is a real fraud
+proof that took a real bond.
 
-Envio HyperIndex is what closed that. Measured on the live app: 7 RPC round-trips became 1 query.
+The part that matters most to us: Checkpoint stores the published leaves, every round's close, high
+and low. Croom's fraud proof needs a challenger to re-derive an epoch and name the round that
+doesn't follow, so without the leaves a disproof is unconstructible. Indexing them means a watcher
+who arrives after a checkpoint was posted can still catch a lie — a guarantee that existed in
+principle becomes one somebody can act on.
 
-WHAT IT DRIVES
+What we deliberately did not do: the chart never touches the indexer. Prices are derived in the
+browser from the drand beacon, and the page counts its own RPC calls to prove that stays at zero.
+If the indexer is unreachable the app pages logs instead and says so on screen. An indexer is an
+intermediary, and our whole argument is that you should not have to trust one — so it makes history
+cheap to read, not truth cheaper to trust.
 
-The Room list is the feature the entire app is built around — every chart, every spec table, every
-verification panel starts from "which Rooms exist". That list now comes from HyperIndex.
-
-The indexer covers the full protocol lifecycle, not just the one event we needed:
-
-  Room        from Registry.RoomOpened
-  Checkpoint  from Ladder.CheckpointPosted / Finalized / Rejected
-  MarketRound from Market.MarketOpened / Settled / Voided
-  Stake       from Market.Staked / Claimed
-  Protocol    running totals, one row
-
-Live right now at https://croom.crackedstudios.xyz/app/ — the panel under the contract addresses
-reads "indexed", and reports what the indexer holds: 50 Rooms, 2 checkpoints (1 rejected), 1
-market, 1 settled. Those are not placeholder numbers. The rejected checkpoint is a real fraud proof
-that took a real bond on Monad testnet.
-
-THE PART WE CARE ABOUT MOST: THE LEAVES
-
-Checkpoint stores the published leaves — every round's close, high and low, as four aligned arrays.
-
-That is not padding. Croom's fraud proof requires a challenger to re-derive an epoch and name the
-round that doesn't follow. Without the leaves, a disproof is unconstructible. It is why our
-contract emits them and why post() takes them rather than just a Merkle root — a data-availability
-rule we found and fixed during the build, after removing a bisection game also removed the forced
-disclosure that made disproofs possible.
-
-Indexing them means a watcher who arrives *after* a checkpoint was posted can still reconstruct it
-and catch a lie. HyperIndex turns a protocol guarantee that existed only in principle into one
-somebody can act on without having been online at the time.
-
-WHAT WE DELIBERATELY DID NOT DO WITH IT
-
-The chart does not touch the indexer. Prices are derived in the browser from the drand beacon, and
-the page counts its own RPC calls on screen to prove it stays at zero.
-
-If the indexer is unreachable, the app falls back to paging logs and says so on screen — the same
-panel switches from "indexed" to "7 rpc calls" with an explanation. That fallback is load-bearing
-rather than polite. Croom's whole argument is that you should not have to trust an intermediary,
-and an indexer is an intermediary. So it makes history cheap to read; it does not make truth
-cheaper to trust. We think that is the honest way to depend on infrastructure, and we wrote it into
-the UI rather than a blog post.
-
-ENGINEERING NOTES
-
-Written against Envio v3, whose shape differs from most examples online: chains rather than
-networks, indexer.onEvent({contract, event}) rather than Contract.Event.handler(), imports from
-"envio" rather than a generated directory, and transaction.hash requiring explicit field_selection.
-
-Because codegen and tsc both pass happily on a package whose handlers the runtime then refuses to
-load — neither cares whether package.json declares "type": "module" — the repo has `npm run verify`,
-which runs codegen, typechecks, and then imports the handler module the way the runtime does. That
-last step is the one that catches the failure the first two miss.
-
-Indexer source: https://github.com/crackedstudio/croom-monad/tree/main/indexer
-Endpoint:       https://indexer.dev.hyperindex.xyz/18d819d/v1/graphql
-```
-
-Query it yourself:
-
-```bash
-curl -s -X POST https://indexer.dev.hyperindex.xyz/18d819d/v1/graphql \
-  -H 'content-type: application/json' \
-  --data '{"query":"query{Protocol{rooms checkpoints rejected markets settled}}"}'
+Source:   github.com/crackedstudio/croom-monad/tree/main/indexer
+Endpoint: https://indexer.dev.hyperindex.xyz/18d819d/v1/graphql
 ```
