@@ -1,12 +1,14 @@
 {
   "name": "croom-indexer",
   "private": true,
+  "type": "module",
   "version": "1.0.0",
   "description": "Envio HyperIndex for Croom \u2014 Rooms, checkpoints and markets on Monad.",
   "scripts": {
     "codegen": "envio codegen",
     "dev": "envio dev",
-    "start": "envio start"
+    "start": "envio start",
+    "verify": "envio codegen && tsc --noEmit && node --experimental-strip-types -e \"import('./src/handlers.ts').then(()=>console.log('handlers load as ES modules')).catch(e=>{console.error(e.message);process.exit(1)})\""
   },
   "dependencies": {
     "envio": "3.14.1"

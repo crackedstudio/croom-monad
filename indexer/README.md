@@ -35,10 +35,14 @@ would drop the leaves and the poster.
 
 ```bash
 npm install
-npm run codegen     # types into .envio/, wired into the `envio` module
-npx tsc --noEmit    # verifies the handlers against them
+npm run verify      # codegen, typecheck, and an ESM import of the handlers
 npm run dev         # local: indexer + GraphQL at http://localhost:8080
 ```
+
+**Run `verify` before pushing.** It reproduces what the hosted runtime does, in order, and the last
+step is the one that earns its place: `codegen` and `tsc` both pass happily on a package the loader
+then refuses, because neither cares whether `package.json` declares `"type": "module"`. Envio
+handlers are ES modules. That gap cost a deployment.
 
 Written against **Envio v3**, whose shape differs from most of the examples online: the config key
 is `chains` rather than `networks`, handlers register through `indexer.onEvent({contract, event})`
