@@ -333,7 +333,7 @@ function provenanceNote(): string {
     ${
       indexed && s
         ? `<br />Envio has ${s.rooms} Rooms, ${s.checkpoints} checkpoints${s.rejected > 0n ? ` (${s.rejected} rejected)` : ""},
-           ${s.markets} markets${s.settled > 0n ? `, ${s.settled} settled` : ""}${
+           ${s.markets} market${s.markets === 1n ? "" : "s"}${s.settled > 0n ? `, ${s.settled} settled` : ""}${
              s.behind === null ? "" : ` — ${s.behind === 0 ? "level with the chain" : `${s.behind.toLocaleString("en-US")} blocks behind`}`
            }.`
         : ""
