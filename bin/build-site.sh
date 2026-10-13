@@ -24,10 +24,18 @@ mkdir -p "$OUT"
 
 # From the environment, or from a gitignored .env at the repo root so that `make deploy-site`
 # needs no prefix and cannot be run keyless by forgetting one.
-PUBLIC_RPC="${CROOM_PUBLIC_RPC:-}"
-if [ -z "$PUBLIC_RPC" ] && [ -f .env ]; then
-  PUBLIC_RPC=$(sed -n 's/^[[:space:]]*CROOM_PUBLIC_RPC[[:space:]]*=[[:space:]]*//p' .env | tr -d '"'"'"'"' | head -1)
-fi
+# Reads one name from the environment, falling back to a gitignored .env at the repo root, so that
+# `make deploy-site` needs no prefix and cannot quietly build without what it was given.
+from_env() {
+  eval "local v=\${$1:-}"
+  if [ -z "${v:-}" ] && [ -f .env ]; then
+    v=$(sed -n "s/^[[:space:]]*$1[[:space:]]*=[[:space:]]*//p" .env | tr -d '"'"'"'"' | head -1)
+  fi
+  printf '%s' "${v:-}"
+}
+
+PUBLIC_RPC=$(from_env CROOM_PUBLIC_RPC)
+INDEXER=$(from_env CROOM_INDEXER)
 
 if [ -n "$PUBLIC_RPC" ]; then
   echo "checking $(echo "$PUBLIC_RPC" | sed 's#\(://[^/]*\).*#\1/…#')"
@@ -42,7 +50,13 @@ if [ -n "$PUBLIC_RPC" ]; then
   echo "endpoint answers as Monad testnet (0x279f)"
 fi
 
-MONAD_TESTNET_RPC="$PUBLIC_RPC" make web >/dev/null
+if [ -n "$INDEXER" ]; then
+  echo "indexer: ${INDEXER%%/v1/graphql}/…"
+else
+  echo "indexer: none — the app will page logs and say so"
+fi
+
+MONAD_TESTNET_RPC="$PUBLIC_RPC" CROOM_INDEXER="$INDEXER" make web >/dev/null
 if [ -n "$PUBLIC_RPC" ]; then
   echo "built with the public endpoint compiled in"
 else
@@ -76,7 +90,10 @@ cp deploy/404.html "$OUT/404.html"
 SCAN=$(mktemp -d)
 cp -R "$OUT"/. "$SCAN"/
 if [ -n "$PUBLIC_RPC" ]; then
-  find "$SCAN" -type f -exec perl -pi -e "s/\Q$PUBLIC_RPC\E//g" {} + 2>/dev/null || true
+  # Braces as the delimiter, not slashes: the string being removed is a URL and is full of them,
+  # which silently ended the pattern early and left the endpoint in the text the scan then saw.
+  PUBLIC_RPC="$PUBLIC_RPC" find "$SCAN" -type f -exec \
+    perl -pi -e 's{\Q$ENV{PUBLIC_RPC}\E}{}g' {} + 2>/dev/null || true
 fi
 if grep -rqE 'infura|alchemy|quicknode|chainstack|blastapi|nodereal' "$SCAN"; then
   echo "REFUSING TO SHIP: a keyed RPC provider appears in the output." >&2
