@@ -317,31 +317,36 @@ Rendered and ready: `ad/out/croom-ad.mp4`. Upload it to YouTube or Loom unlisted
 real on-chain data in your app — not just installed, but actually driving a feature.**
 
 ```
-Our README listed "No indexer" under Known limitations before this bounty existed. The app read
-Room history from logs, and Monad caps eth_getLogs at 100 blocks — with our Registry at block
-68,240,012 and the head past 70,700,000, a Room opened today sat about twenty-five thousand
-sequential requests away. It only worked because our first fifty Rooms happened to be opened within
-a few blocks of each other.
+We'd already written "No indexer" into our README's limitations before we knew this bounty existed.
 
-HyperIndex closed that. Measured on the live app: 7 RPC round-trips became 1 query.
+The app was reading Room history straight from the chain's logs, and Monad caps eth_getLogs at 100
+blocks. Our Registry went in at block 68,240,012 and the head is past 70,700,000, so finding a Room
+opened today meant something like twenty-five thousand requests, one after another. It only worked
+because our first fifty Rooms all went in within a few blocks of each other and the loop could stop
+early. That's luck in our test data, not a property of the protocol.
 
-It drives the Room list, which the whole app is built on — every chart, spec table and verification
-panel starts from "which Rooms exist". The indexer covers Rooms, checkpoints, markets and stakes.
-Live at croom.crackedstudios.xyz/app — the panel under the contract addresses reads "indexed" and
-reports 50 Rooms, 2 checkpoints (1 rejected), 1 market, 1 settled. The rejected one is a real fraud
-proof that took a real bond.
+HyperIndex fixed it. On the live app, 7 RPC round-trips became 1 query.
 
-The part that matters most to us: Checkpoint stores the published leaves, every round's close, high
-and low. Croom's fraud proof needs a challenger to re-derive an epoch and name the round that
-doesn't follow, so without the leaves a disproof is unconstructible. Indexing them means a watcher
-who arrives after a checkpoint was posted can still catch a lie — a guarantee that existed in
-principle becomes one somebody can act on.
+It powers the Room list, and the Room list is what everything else hangs off — every chart, every
+spec table, every verification panel starts with "which Rooms exist". The indexer tracks
+checkpoints, markets and stakes too.
 
-What we deliberately did not do: the chart never touches the indexer. Prices are derived in the
-browser from the drand beacon, and the page counts its own RPC calls to prove that stays at zero.
-If the indexer is unreachable the app pages logs instead and says so on screen. An indexer is an
-intermediary, and our whole argument is that you should not have to trust one — so it makes history
-cheap to read, not truth cheaper to trust.
+Go and look: croom.crackedstudios.xyz/app. The panel under the contract addresses says "indexed"
+and shows what's in there — 50 Rooms, 2 checkpoints with 1 rejected, 1 market, 1 settled. That
+rejected checkpoint isn't a fixture. Somebody posted a wrong price on Monad testnet and lost their
+bond for it.
+
+The bit we're happiest about is the leaves. Every Checkpoint stores each round's close, high and
+low. Our fraud proof works by having a challenger re-derive an epoch and point at the round that
+doesn't follow, and they can't do that without those values. Indexing them means someone who turns
+up after a checkpoint was posted can still go back and catch a lie. It takes a guarantee that was
+true on paper and makes it something you can actually use.
+
+One thing we kept it away from on purpose: the chart. Prices are derived in your browser from the
+drand beacon, and the page counts its own RPC calls so you can watch that number stay at zero. If
+the indexer goes down, the app falls back to paging logs and tells you it did. An indexer is an
+intermediary, and the whole point of Croom is that you shouldn't have to trust one. It makes
+history cheap to read. It doesn't make truth cheaper to trust.
 
 Source:   github.com/crackedstudio/croom-monad/tree/main/indexer
 Endpoint: https://indexer.dev.hyperindex.xyz/18d819d/v1/graphql
