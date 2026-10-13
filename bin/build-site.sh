@@ -36,6 +36,11 @@ rm -f "$OUT/dist/bundle.js.map"
 # output directory is entirely a build product and can be deleted without losing anything.
 cp deploy/_headers "$OUT/_headers"
 
+# Without a 404.html, Pages answers any invented path with index.html and a 200 — so probing
+# /.env returned "success" and a page. Nothing was leaking, but a site arguing for verifiability
+# should not report success for something that does not exist.
+cp deploy/404.html "$OUT/404.html"
+
 # Two checks, both precise. A generic "32 hex characters" rule was tried first and matched every
 # zero-padded EVM word in the bundle, which is the kind of guard people learn to ignore.
 if grep -rqE 'infura|alchemy|quicknode|chainstack|blastapi|nodereal' "$OUT"; then

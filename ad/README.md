@@ -53,5 +53,4 @@ Fonts are loaded from `public/` rather than from Google Fonts: the network fetch
 
 Colours come from `../web/assets/croom.css` via `src/theme.ts`.
 
-**The end card has a placeholder URL.** `src/Ad.tsx` has `const url = "croom.pages.dev"` — set it to
-the real deployment and re-render.
+The end card URL lives in `src/Ad.tsx` as `const url`. Change it and re-render.

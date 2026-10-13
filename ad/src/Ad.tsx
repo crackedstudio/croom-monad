@@ -320,8 +320,7 @@ export const Ad: React.FC = () => {
   const { fps } = useVideoConfig();
   const s = (n: number) => Math.round(n * fps);
 
-  // Replace with the deployed URL once Pages is live.
-  const url = "croom.pages.dev";
+  const url = "croom.crackedstudios.xyz";
 
   return (
     <AbsoluteFill style={{ backgroundColor: INK }}>

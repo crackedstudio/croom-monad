@@ -7,6 +7,8 @@ randomness beacon. Nobody — not the Room's creator, not us, not validators —
 or see it before it exists. Anyone can recompute the entire history from public data, and the chain
 is used only to check agreement.
 
+**Live: [croom.crackedstudios.xyz](https://croom.crackedstudios.xyz)** — try to rig a price yourself; no wallet, nothing to install.
+
 Monad Metropolis, Track 01 — Onchain Finance & Trading.
 
 ---

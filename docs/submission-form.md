@@ -89,6 +89,16 @@ Two of eight families ship on EVM. There is no fee router — the rake goes enti
 
 ---
 
+## Live product
+
+```
+https://croom.crackedstudios.xyz
+```
+
+Runs against Monad testnet. No wallet needed for anything on the page.
+
+---
+
 ## GitHub
 
 ```
@@ -182,7 +192,7 @@ Nothing here needs a wallet, an account, test funds, or anything installed. Ever
 
 START HERE — 60 SECONDS
 
-Open the live product. A guided tour opens by itself and explains every part of the page; if you dismiss it, the "Show me around" button brings it back, and every "?" marker opens the same explanations on its own.
+Open https://croom.crackedstudios.xyz — a guided tour opens by itself and explains every part of the page; if you dismiss it, the "Show me around" button brings it back, and every "?" marker opens the same explanations on its own.
 
 THE ONE THING TO TRY
 
