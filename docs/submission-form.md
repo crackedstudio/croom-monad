@@ -350,3 +350,43 @@ trust, and Croom is meant to not need that, so we use it for history and nothing
 Source:   github.com/crackedstudio/croom-monad/tree/main/indexer
 Endpoint: https://indexer.dev.hyperindex.xyz/18d819d/v1/graphql
 ```
+
+---
+
+## Bounty — Alchemy, "Best Projects using Alchemy"
+
+Adapt to whatever the form actually asks; this covers the usual "how do you use it" shape.
+
+```
+Alchemy is the primary RPC endpoint for the live app at croom.crackedstudios.xyz. Every read we
+make against Monad goes through it first, with two public endpoints behind it as fallbacks.
+
+The one that matters most is the rig panel. A visitor picks any price in a finalised epoch, changes
+it to whatever they like, and asks the contract to accept it. That's an eth_call to
+Ladder.provenClose, which is the same call our market makes before it pays anyone out. It's a view,
+so it costs nothing and needs no wallet, and it's the interaction the whole submission is built
+around. It runs on Alchemy. The honest price comes back as 99.999827; move it by 10^-18 and the
+contract refuses it. Both answers come from Alchemy.
+
+The rest is the same path: reading the proven floor from Entropy, pulling a committed Merkle root
+out of Ladder to compare against what the browser derived, and checking market state.
+
+Two things we did around it that are worth mentioning.
+
+The endpoint is compiled into the bundle, so it's readable by anyone who views source. We treat it
+as public and restrict it by domain at Alchemy rather than pretending it's a secret. Our build
+script has a guard that refuses to ship if any other keyed provider shows up in the output, so the
+one public endpoint is allowed and a key pasted somewhere by mistake still fails the build.
+
+The build also checks the endpoint before shipping it. It calls eth_chainId and aborts unless the
+answer is 0x279f. We'd rather fail a deploy than find out from a judge's browser that the RPC was
+wrong, which is exactly the kind of thing that only shows up when someone else is looking.
+
+One thing Alchemy deliberately isn't doing: the chart. Prices are derived in the browser from the
+drand beacon, and the page counts its own RPC calls so you can watch that number stay at zero while
+240 rounds are drawn. Alchemy powers the part where we check our work against the chain, not the
+part where the prices come from.
+
+Live:  croom.crackedstudios.xyz/app
+Code:  github.com/crackedstudio/croom-monad/blob/main/web/src/chain.ts
+```
