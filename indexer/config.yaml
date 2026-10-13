@@ -7,7 +7,13 @@
 # stop early. That is a demo, not a product, and the README said so before this existed.
 name: croom
 description: Rooms, checkpoints and markets on Monad, indexed from the chain.
-networks:
+
+# Transaction hashes are not selected by default, and the frontend links Rooms and checkpoints
+# straight to the explorer — "here is the transaction" is most of the argument this project makes.
+field_selection:
+  transaction_fields:
+    - hash
+chains:
   - id: 10143
     # Earliest contract deployment, so one pass covers the whole protocol history.
     start_block: 67860754

@@ -5,24 +5,19 @@
  * Final or Rejected later, and those are separate events — so each handler loads the row and
  * narrows it rather than writing a fresh one, which would drop the leaves and the poster.
  */
-import {
-  Ladder,
-  Market,
-  Registry,
-  type Checkpoint,
-  type MarketRound,
-  type Protocol,
-  type Room,
-  type Stake,
-} from "generated";
+import { indexer } from "envio";
+import type { Checkpoint, MarketRound, Protocol, Room, Stake } from "envio";
 
 const PROTOCOL_ID = "croom";
 const SIDES = ["Up", "Down"] as const;
 
-const side = (n: number | bigint): string => SIDES[Number(n)] ?? `Unknown(${n})`;
+const side = (n: bigint | number): string => SIDES[Number(n)] ?? `Unknown(${n})`;
+const checkpointId = (roomId: string, epoch: bigint) => `${roomId}-${epoch}`;
+const stakeId = (marketId: string, staker: string, s: string) =>
+  `${marketId}-${staker.toLowerCase()}-${s}`;
 
 /** The running totals row, created on first touch. */
-async function protocol(context: { Protocol: { get: (id: string) => Promise<Protocol | undefined> } }): Promise<Protocol> {
+async function protocol(context: { Protocol: { get(id: string): Promise<Protocol | undefined> } }): Promise<Protocol> {
   const existing = await context.Protocol.get(PROTOCOL_ID);
   return (
     existing ?? {
@@ -37,12 +32,9 @@ async function protocol(context: { Protocol: { get: (id: string) => Promise<Prot
   );
 }
 
-const checkpointId = (roomId: string, epoch: bigint) => `${roomId}-${epoch}`;
-const stakeId = (marketId: string, staker: string, s: string) => `${marketId}-${staker.toLowerCase()}-${s}`;
-
 // ── Registry ─────────────────────────────────────────────────────────────────────────────────
 
-Registry.RoomOpened.handler(async ({ event, context }) => {
+indexer.onEvent({ contract: "Registry", event: "RoomOpened" }, async ({ event, context }) => {
   const room: Room = {
     id: event.params.roomId,
     creator: event.params.creator,
@@ -58,11 +50,11 @@ Registry.RoomOpened.handler(async ({ event, context }) => {
 
 // ── Ladder ───────────────────────────────────────────────────────────────────────────────────
 
-Ladder.CheckpointPosted.handler(async ({ event, context }) => {
-  // The leaves arrive as tuples of (round, close, high, low). Stored as parallel arrays because
-  // GraphQL has no tuple type and four aligned lists survive a schema migration better than a
-  // JSON blob nobody can filter on.
-  const leaves = event.params.leaves as readonly (readonly [bigint, bigint, bigint, bigint])[];
+indexer.onEvent({ contract: "Ladder", event: "CheckpointPosted" }, async ({ event, context }) => {
+  // The leaves arrive as (round, close, high, low). Stored as four parallel arrays because
+  // GraphQL has no tuple type, and aligned lists survive a schema change better than a JSON blob
+  // nobody can filter on.
+  const leaves = event.params.leaves;
 
   const cp: Checkpoint = {
     id: checkpointId(event.params.roomId, event.params.epoch),
@@ -89,16 +81,14 @@ Ladder.CheckpointPosted.handler(async ({ event, context }) => {
   context.Protocol.set({ ...p, checkpoints: p.checkpoints + 1n });
 });
 
-Ladder.CheckpointFinalized.handler(async ({ event, context }) => {
-  const id = checkpointId(event.params.roomId, event.params.epoch);
-  const cp = await context.Checkpoint.get(id);
+indexer.onEvent({ contract: "Ladder", event: "CheckpointFinalized" }, async ({ event, context }) => {
+  const cp = await context.Checkpoint.get(checkpointId(event.params.roomId, event.params.epoch));
   if (!cp) return; // Posted before the indexed range; nothing to narrow.
   context.Checkpoint.set({ ...cp, status: "Final", endPrice: event.params.endPrice });
 });
 
-Ladder.CheckpointRejected.handler(async ({ event, context }) => {
-  const id = checkpointId(event.params.roomId, event.params.epoch);
-  const cp = await context.Checkpoint.get(id);
+indexer.onEvent({ contract: "Ladder", event: "CheckpointRejected" }, async ({ event, context }) => {
+  const cp = await context.Checkpoint.get(checkpointId(event.params.roomId, event.params.epoch));
   if (!cp) return;
   context.Checkpoint.set({
     ...cp,
@@ -114,7 +104,7 @@ Ladder.CheckpointRejected.handler(async ({ event, context }) => {
 
 // ── Market ───────────────────────────────────────────────────────────────────────────────────
 
-Market.MarketOpened.handler(async ({ event, context }) => {
+indexer.onEvent({ contract: "Market", event: "MarketOpened" }, async ({ event, context }) => {
   const m: MarketRound = {
     id: event.params.marketId,
     room_id: event.params.roomId,
@@ -135,11 +125,11 @@ Market.MarketOpened.handler(async ({ event, context }) => {
   context.Protocol.set({ ...p, markets: p.markets + 1n });
 });
 
-Market.Staked.handler(async ({ event, context }) => {
+indexer.onEvent({ contract: "Market", event: "Staked" }, async ({ event, context }) => {
   const s = side(event.params.side);
   const id = stakeId(event.params.marketId, event.params.staker, s);
 
-  // One staker may add to the same side more than once; the contract accumulates, so this does too.
+  // A staker may add to the same side more than once; the contract accumulates, so this does too.
   const existing = await context.Stake.get(id);
   const stake: Stake = existing
     ? { ...existing, amount: existing.amount + event.params.amount }
@@ -167,7 +157,7 @@ Market.Staked.handler(async ({ event, context }) => {
   context.Protocol.set({ ...p, totalStaked: p.totalStaked + event.params.amount });
 });
 
-Market.Settled.handler(async ({ event, context }) => {
+indexer.onEvent({ contract: "Market", event: "Settled" }, async ({ event, context }) => {
   const market = await context.MarketRound.get(event.params.marketId);
   if (!market) return;
   context.MarketRound.set({
@@ -183,7 +173,7 @@ Market.Settled.handler(async ({ event, context }) => {
   context.Protocol.set({ ...p, settled: p.settled + 1n });
 });
 
-Market.Claimed.handler(async ({ event, context }) => {
+indexer.onEvent({ contract: "Market", event: "Claimed" }, async ({ event, context }) => {
   // The event does not say which side won, and the loser cannot claim — so whichever side this
   // staker is on, that is the row to mark.
   for (const s of SIDES) {
@@ -193,7 +183,7 @@ Market.Claimed.handler(async ({ event, context }) => {
   }
 });
 
-Market.Voided.handler(async ({ event, context }) => {
+indexer.onEvent({ contract: "Market", event: "Voided" }, async ({ event, context }) => {
   const market = await context.MarketRound.get(event.params.marketId);
   if (!market) return;
   context.MarketRound.set({ ...market, state: "Void" });

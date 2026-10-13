@@ -35,9 +35,17 @@ would drop the leaves and the poster.
 
 ```bash
 npm install
-npm run codegen     # generates types from config.yaml + schema.graphql
+npm run codegen     # types into .envio/, wired into the `envio` module
+npx tsc --noEmit    # verifies the handlers against them
 npm run dev         # local: indexer + GraphQL at http://localhost:8080
 ```
+
+Written against **Envio v3**, whose shape differs from most of the examples online: the config key
+is `chains` rather than `networks`, handlers register through `indexer.onEvent({contract, event})`
+rather than `Contract.Event.handler()`, and everything imports from `envio` rather than from a
+`generated` directory. `transaction.hash` also has to be asked for explicitly under
+`field_selection` — without it the field exists in the types only as an error message explaining
+how to request it, which is a nicer failure than most.
 
 Hosted: connect the repo at [envio.dev](https://envio.dev), point it at `indexer/`, deploy. It
 gives you a GraphQL endpoint.
