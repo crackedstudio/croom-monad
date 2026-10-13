@@ -317,36 +317,35 @@ Rendered and ready: `ad/out/croom-ad.mp4`. Upload it to YouTube or Loom unlisted
 real on-chain data in your app — not just installed, but actually driving a feature.**
 
 ```
-We'd already written "No indexer" into our README's limitations before we knew this bounty existed.
+We had "No indexer" sitting in our README under known limitations before we knew this bounty
+existed.
 
-The app was reading Room history straight from the chain's logs, and Monad caps eth_getLogs at 100
-blocks. Our Registry went in at block 68,240,012 and the head is past 70,700,000, so finding a Room
-opened today meant something like twenty-five thousand requests, one after another. It only worked
-because our first fifty Rooms all went in within a few blocks of each other and the loop could stop
-early. That's luck in our test data, not a property of the protocol.
+The app read Room history from the chain's logs. Monad caps eth_getLogs at 100 blocks, our
+Registry is at block 68,240,012, and the head is past 70,700,000. So finding a Room that was
+opened today would have taken roughly 25,000 requests in sequence. The only reason it worked up to
+now is that our first fifty Rooms were all opened within a few blocks of each other, so the loop
+found them and stopped. That's our test data being convenient, not the protocol being fine.
 
-HyperIndex fixed it. On the live app, 7 RPC round-trips became 1 query.
+HyperIndex replaced that. On the live app it went from 7 RPC round-trips to 1 query.
 
-It powers the Room list, and the Room list is what everything else hangs off — every chart, every
-spec table, every verification panel starts with "which Rooms exist". The indexer tracks
-checkpoints, markets and stakes too.
+It powers the Room list, which is where the rest of the app starts. Charts, spec tables and the
+verification panel all need to know which Rooms exist before they can do anything. We index
+checkpoints, markets and stakes as well.
 
-Go and look: croom.crackedstudios.xyz/app. The panel under the contract addresses says "indexed"
-and shows what's in there — 50 Rooms, 2 checkpoints with 1 rejected, 1 market, 1 settled. That
-rejected checkpoint isn't a fixture. Somebody posted a wrong price on Monad testnet and lost their
-bond for it.
+You can check it at croom.crackedstudios.xyz/app. The panel under the contract addresses says
+"indexed" and lists what the indexer has: 50 Rooms, 2 checkpoints with 1 rejected, 1 market, 1
+settled. The rejected one is real. Someone posted a wrong price on Monad testnet and lost their
+bond over it.
 
-The bit we're happiest about is the leaves. Every Checkpoint stores each round's close, high and
-low. Our fraud proof works by having a challenger re-derive an epoch and point at the round that
-doesn't follow, and they can't do that without those values. Indexing them means someone who turns
-up after a checkpoint was posted can still go back and catch a lie. It takes a guarantee that was
-true on paper and makes it something you can actually use.
+The leaves are the part we think is worth mentioning. Each Checkpoint row stores every round's
+close, high and low. Our fraud proof needs a challenger to re-derive an epoch and point at the
+round that doesn't follow, and they can't do that without those numbers. Indexing them means
+someone who shows up late can still go back through a checkpoint and find the lie.
 
-One thing we kept it away from on purpose: the chart. Prices are derived in your browser from the
-drand beacon, and the page counts its own RPC calls so you can watch that number stay at zero. If
-the indexer goes down, the app falls back to paging logs and tells you it did. An indexer is an
-intermediary, and the whole point of Croom is that you shouldn't have to trust one. It makes
-history cheap to read. It doesn't make truth cheaper to trust.
+We kept it out of the chart on purpose. Prices are derived in the browser from the drand beacon,
+and the page counts its own RPC calls so you can watch that stay at zero. If the indexer is down
+the app goes back to paging logs and says so on screen. An indexer is still something you have to
+trust, and Croom is meant to not need that, so we use it for history and nothing else.
 
 Source:   github.com/crackedstudio/croom-monad/tree/main/indexer
 Endpoint: https://indexer.dev.hyperindex.xyz/18d819d/v1/graphql
