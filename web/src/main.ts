@@ -16,6 +16,7 @@ import {
   roomsOpened,
 } from "./chain.js";
 import { chip, mountExplainers } from "./explain.js";
+import { indexerStats, roomsFromIndexer, INDEXER_URL, type IndexerStats, type Provenance } from "./indexer.js";
 import { mountRig } from "./rig.js";
 import { mountPredict } from "./predict.js";
 import { mountCompose, draftSpec } from "./compose.js";
@@ -90,7 +91,36 @@ const state: {
   series?: Candle[];
   floor?: bigint;
   beaconHead?: bigint;
+  provenance?: Provenance;
+  stats?: IndexerStats | null;
 } = { rooms: [] };
+
+/**
+ * Rooms from the indexer if it answers, from the chain's logs if it does not.
+ *
+ * The fallback is load-bearing rather than polite. An indexer is an intermediary, and this project
+ * argues you should not have to trust one — so the page must work without it, and must say which
+ * path it took instead of looking identical either way.
+ */
+async function loadRooms(): Promise<{ raw: { roomId: string; creator: string; spec: string }[]; provenance: Provenance }> {
+  const indexed = await roomsFromIndexer();
+  if (indexed) return { raw: indexed.rooms, provenance: indexed.provenance };
+
+  const started = performance.now();
+  const before = rpcCalls;
+  const raw = await roomsOpened();
+  return {
+    raw,
+    provenance: {
+      source: "logs",
+      ms: Math.round(performance.now() - started),
+      requests: rpcCalls - before,
+      note: INDEXER_URL
+        ? "The indexer did not answer, so this fell back to paging the chain's logs."
+        : "Paged straight from the chain's logs, 100 blocks at a time — Monad's cap on eth_getLogs.",
+    },
+  };
+}
 
 function renderRpcCounter() {
   const node = document.getElementById("rpc-count");
@@ -289,6 +319,34 @@ async function verifyPanel(room: Room): Promise<string> {
   </div>`;
 }
 
+/** Says where the Room list came from, and what it cost. */
+function provenanceNote(): string {
+  const p = state.provenance;
+  if (!p) return "";
+  const indexed = p.source === "indexer";
+  const s = state.stats;
+
+  return `
+  <div class="note" style="margin-top:14px">
+    <span class="badge ${indexed ? "good" : "warn"}">${indexed ? "indexed" : `${p.requests} rpc calls`}</span>
+    ${p.note}
+    ${
+      indexed && s
+        ? `<br />Envio has ${s.rooms} Rooms, ${s.checkpoints} checkpoints${s.rejected > 0n ? ` (${s.rejected} rejected)` : ""},
+           ${s.markets} markets${s.settled > 0n ? `, ${s.settled} settled` : ""}${
+             s.behind === null ? "" : ` — ${s.behind === 0 ? "level with the chain" : `${s.behind.toLocaleString("en-US")} blocks behind`}`
+           }.`
+        : ""
+    }
+    ${
+      indexed
+        ? `<br />The chart above did not use it. Prices are derived from the beacon, and an indexer
+           is an intermediary — it makes <em>history</em> cheap to read, not truth cheaper to trust.`
+        : ""
+    }
+  </div>`;
+}
+
 // ── the interactive half ─────────────────────────────────────────────────────────────────────
 //
 // The panels above prove things at the reader. These three let them find out for themselves, in
@@ -457,15 +515,18 @@ async function main(): Promise<void> {
   mountExplainers();
   app.innerHTML = `<div class="panel"><p class="note">Reading the beacon and the chain…</p></div>`;
 
-  const [head, floor, opened] = await Promise.all([
+  const [head, floor, loaded, stats] = await Promise.all([
     drand.round("latest").then((r) => r.round),
     provenFloor(),
-    roomsOpened(),
+    loadRooms(),
+    indexerStats(),
   ]);
 
   state.beaconHead = head;
   state.floor = floor;
-  state.rooms = opened.flatMap((o) => {
+  state.provenance = loaded.provenance;
+  state.stats = stats;
+  state.rooms = loaded.raw.flatMap((o) => {
     try {
       const bytes = Uint8Array.from(
         (o.spec.slice(2).match(/.{2}/g) ?? []).map((b) => parseInt(b, 16)),
@@ -496,6 +557,7 @@ async function main(): Promise<void> {
           <tr><td>beacon</td><td>${EVMNET.scheme}</td></tr>
           <tr><td>rooms open</td><td>${state.rooms.length}</td></tr>
         </table>
+        ${provenanceNote()}
       </div>
     </div>
     <div id="panels"></div>

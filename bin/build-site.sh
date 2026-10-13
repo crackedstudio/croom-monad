@@ -22,7 +22,12 @@ OUT=site
 rm -rf "$OUT"
 mkdir -p "$OUT"
 
+# From the environment, or from a gitignored .env at the repo root so that `make deploy-site`
+# needs no prefix and cannot be run keyless by forgetting one.
 PUBLIC_RPC="${CROOM_PUBLIC_RPC:-}"
+if [ -z "$PUBLIC_RPC" ] && [ -f .env ]; then
+  PUBLIC_RPC=$(sed -n 's/^[[:space:]]*CROOM_PUBLIC_RPC[[:space:]]*=[[:space:]]*//p' .env | tr -d '"'"'"'"' | head -1)
+fi
 
 if [ -n "$PUBLIC_RPC" ]; then
   echo "checking $(echo "$PUBLIC_RPC" | sed 's#\(://[^/]*\).*#\1/…#')"

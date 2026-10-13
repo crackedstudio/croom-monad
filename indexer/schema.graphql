@@ -1,0 +1,75 @@
+"A Room: an immutable price process. The spec is the Room — its hash is the id."
+type Room {
+  id: ID!                      # roomId
+  creator: String!
+  spec: String!                # canonical 51-byte encoding, hex
+  openedAt: BigInt!            # block number
+  openedTx: String!
+  checkpoints: [Checkpoint!]! @derivedFrom(field: "room")
+  markets: [Market!]! @derivedFrom(field: "room")
+}
+
+"""
+One epoch's committed prices.
+
+`leafRounds`/`leafCloses`/`leafHighs`/`leafLows` are the published leaves, kept because a
+disproof is unconstructible without them. Posting them is the protocol's data-availability
+rule; serving them is what lets a watcher who arrived late still catch a lie.
+"""
+type Checkpoint {
+  id: ID!                      # roomId-epoch
+  room: Room!
+  epoch: BigInt!
+  poster: String!
+  merkleRoot: String!
+  deadlineRound: BigInt!
+  status: String!              # Pending | Final | Rejected
+  postedAt: BigInt!
+  postedTx: String!
+  endPrice: BigInt
+  rejectedBy: String
+  rejectedRound: BigInt
+  rejectedReason: String
+  leafRounds: [BigInt!]!
+  leafCloses: [BigInt!]!
+  leafHighs: [BigInt!]!
+  leafLows: [BigInt!]!
+}
+
+"A parimutuel market over one window of a Room."
+type Market {
+  id: ID!                      # marketId
+  room: Room!
+  startRound: BigInt!
+  endRound: BigInt!
+  state: String!               # Open | Settled | Void
+  upTotal: BigInt!
+  downTotal: BigInt!
+  winner: String
+  startClose: BigInt
+  endClose: BigInt
+  rake: BigInt
+  openedAt: BigInt!
+  stakes: [Stake!]! @derivedFrom(field: "market")
+}
+
+type Stake {
+  id: ID!                      # marketId-staker-side
+  market: Market!
+  staker: String!
+  side: String!                # Up | Down
+  amount: BigInt!
+  claimed: Boolean!
+  payout: BigInt
+}
+
+"One row, so the frontend can show how far behind the indexer is rather than implying it is live."
+type Protocol {
+  id: ID!
+  rooms: BigInt!
+  checkpoints: BigInt!
+  rejected: BigInt!
+  markets: BigInt!
+  settled: BigInt!
+  totalStaked: BigInt!
+}

@@ -1,0 +1,42 @@
+# Envio HyperIndex — the indexer Croom's frontend was missing.
+#
+# The app read Room history straight from logs, and Monad's RPC caps eth_getLogs at 100 blocks.
+# The Registry went in at block 68,240,012 and the head is past 70,700,000, so finding a Room
+# opened today meant roughly twenty-five thousand sequential requests. It only worked at all
+# because the first fifty Rooms were opened within a few blocks of each other and the loop could
+# stop early. That is a demo, not a product, and the README said so before this existed.
+name: croom
+description: Rooms, checkpoints and markets on Monad, indexed from the chain.
+networks:
+  - id: 10143
+    # Earliest contract deployment, so one pass covers the whole protocol history.
+    start_block: 67860754
+    contracts:
+      - name: Registry
+        address:
+          - 0xE583B914CF2d25fc278301b195aB090640b4eECA
+        handler: src/handlers.ts
+        events:
+          - event: RoomOpened(bytes32 indexed roomId, address indexed creator, bytes spec)
+
+      - name: Ladder
+        address:
+          - 0x1fa152836d8a5E6a0E5db8E2E811089ceE26025d
+        handler: src/handlers.ts
+        events:
+          # `leaves` is the published epoch data. Indexing it is what makes a disproof
+          # constructible by somebody who was not watching when the checkpoint was posted.
+          - event: CheckpointPosted(bytes32 indexed roomId, uint64 indexed epoch, address indexed poster, bytes32 merkleRoot, uint64 deadlineRound, (uint64,int128,int128,int128)[] leaves)
+          - event: CheckpointFinalized(bytes32 indexed roomId, uint64 indexed epoch, int128 endPrice)
+          - event: CheckpointRejected(bytes32 indexed roomId, uint64 indexed epoch, address indexed challenger, uint64 round, string reason)
+
+      - name: Market
+        address:
+          - 0xBa0614A04243d037A4e05F901eB30C75079d1c9D
+        handler: src/handlers.ts
+        events:
+          - event: MarketOpened(bytes32 indexed marketId, bytes32 indexed roomId, uint64 startRound, uint64 endRound)
+          - event: Staked(bytes32 indexed marketId, address indexed staker, uint8 side, uint128 amount)
+          - event: Settled(bytes32 indexed marketId, uint8 winner, int128 startClose, int128 endClose, uint128 rake)
+          - event: Claimed(bytes32 indexed marketId, address indexed staker, uint256 amount)
+          - event: Voided(bytes32 indexed marketId, string reason)

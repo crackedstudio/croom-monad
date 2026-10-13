@@ -1,0 +1,17 @@
+{
+  "name": "croom-indexer",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Envio HyperIndex for Croom — Rooms, checkpoints and markets on Monad.",
+  "scripts": {
+    "codegen": "envio codegen",
+    "dev": "envio dev",
+    "start": "envio start"
+  },
+  "dependencies": {
+    "envio": "^2.0.0"
+  },
+  "devDependencies": {
+    "typescript": "5.8.*"
+  }
+}

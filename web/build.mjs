@@ -40,6 +40,9 @@ const buildContext = await context({
   },
   define: {
     __MONAD_TESTNET_RPC__: JSON.stringify(configuredRpc ?? ""),
+    // The indexer's GraphQL endpoint. Public by nature — it serves public chain data — and empty
+    // is a supported configuration: the app falls back to reading logs.
+    __CROOM_INDEXER__: JSON.stringify(process.env.CROOM_INDEXER ?? ""),
   },
 });
 
