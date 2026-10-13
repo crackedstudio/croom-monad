@@ -246,69 +246,65 @@ Nothing runs unattended. One Room has a finalised epoch and one settled market; 
 
 ---
 
-## Pitch video script (up to 2 minutes)
+## Pitch video script (cap 2:00 — this runs ~1:25)
 
-Solo builder, under Cracked Studio. Read at a normal pace this lands at about 1:50, which leaves
-room to breathe. Say it in your own words rather than reading it flat — the one thing a pitch video
-has that a demo does not is a person.
+Solo builder, under Cracked Studio.
 
-**On camera for the first and last beats at minimum.** The form asks you to introduce your team, and
-a 2-minute video with no human in it reads as avoidance. The middle can be screen or b-roll.
+Shorter is stronger. A judge watches a lot of these, and two minutes of filled time reads worse
+than eighty-five seconds that land. The cap is a ceiling, not a target.
+
+Counted, not guessed: 204 spoken words, about 1:25 at an unhurried pace. That leaves half a minute
+of headroom for a slow take or a stumble.
+
+**On camera for the first and last beats at minimum** — the form asks you to introduce your team,
+and a pitch with no human in it reads as avoidance. Say it in your own words; these lines are timed
+to be spoken, not read.
 
 ---
 
-### 0:00 — who (15s) · on camera
+### 0:00 — who (10s) · on camera
 
-> "I'm [name]. I build under Cracked Studio, and I've been working on Croom — a way to make markets
-> whose price nobody can rig. Including me."
+> "I'm [name]. I build under Cracked Studio. Croom is a market whose price nobody can rig —
+> including me."
 
-### 0:15 — the problem (30s) · b-roll or on camera
+### 0:10 — the problem (25s) · on camera
 
-> "Every market needs a price, and every price comes from someone you have to trust. An oracle you
-> trust not to lie, not to be bribed, not to go down."
+> "Every market needs a price, and every price comes from someone you trust not to lie."
 >
-> "Synthetic markets have it worse. If you've ever played a crash game or an on-chain dice site,
-> the house generated the number you lost to. They'll show you a seed commitment and call it
-> provably fair — but that only proves they didn't change their mind after you bet. It proves
-> nothing about how the seed was chosen in the first place."
+> "Synthetic markets are worse. The house generates the number you lose to. They show you a seed
+> commitment and call it provably fair — but that only proves they didn't change their mind after
+> you bet. It says nothing about how the seed was picked."
 
-### 0:45 — what Croom is (30s) · screen: the app
+### 0:35 — what it is (25s) · screen: the app
 
-> "Croom takes the house out of it. The prices come from drand — a public randomness beacon run by
-> organisations that don't know we exist, publishing a signed value every three seconds that nobody
-> can predict or skip."
+> "Croom takes the house out. Prices come from a public randomness beacon, signed every three
+> seconds by people who don't know we exist."
 >
-> "A Room is just a recipe for turning that randomness into a price. Hand the recipe and the public
-> beacon to any two people and they get byte-identical prices, forever, without talking to each
-> other. The price isn't reported. It's derived. There's no server to trust, and nothing for me to
-> tamper with."
+> "Hand anyone that recipe and they get identical prices, forever, without talking to each other.
+> The price isn't reported — it's derived. There's nothing for me to tamper with."
 
-### 1:15 — why you're building it (25s) · on camera
+### 1:00 — why, and what exists (25s) · on camera, then transactions
 
-> "I kept coming back to the same thing: every 'provably fair' system I looked at was asking me to
-> trust the person who profits when I lose. That's not a technical gap, it's a structural one, and
-> you can't audit your way out of it. You have to remove the party."
+> "Every provably-fair system I looked at asks you to trust whoever profits when you lose. You
+> can't audit that away. You have to remove the party."
 >
-> "So the chain here doesn't supply the price. It only catches anyone who lies about it — and the
-> proof takes one transaction, costs the challenger nothing but gas, and takes the liar's bond."
-
-### 1:40 — what actually exists (20s) · screen: transactions
-
-> "This isn't a deck. On Monad testnet, somebody posted a price that was wrong by one unit at the
-> eighteenth decimal place, and lost their bond to an address that re-derived it from the beacon
-> and proved it. A market settled against proven prices and paid a winner out. There are
-> transaction hashes for both."
->
-> "And you can try to rig it yourself, right now, in a browser, with no wallet. It'll refuse you."
+> "So the chain doesn't supply the price — it catches anyone who lies about it and takes their
+> bond. Somebody already lost theirs, over a lie of one unit at the eighteenth decimal place. You
+> can try to rig it yourself, in a browser, right now."
 
 ---
 
 ### What to avoid
 
-- Don't say "we" if you're solo. One person who shipped this is a stronger story than a vague team.
-- Don't claim traction. One market, two accounts, five hundredths of a MON — if volume comes up,
-  say that plainly. The mechanism is the claim, not the numbers.
-- Don't walk through code. That's the technical demo's job, and the form says so explicitly.
-- Mention that a Rust reference implementation existed before this one, and that the Solidity is
-  checked bit-for-bit against it across 20,000 rounds. It's the fastest way to signal this wasn't
-  started on Friday.
+- Don't say "we" if you're solo. One person who shipped this is the stronger story.
+- Don't claim traction. One market, two accounts, five hundredths of a MON — say so plainly if it
+  comes up.
+- Don't walk through code. That's the demo's job, and the form says so.
+- Do mention the Rust reference came first and the Solidity is checked against it across 20,000
+  rounds. It's the fastest signal that this wasn't started on Friday.
+
+---
+
+## Product advertisement (optional, 30s)
+
+Rendered and ready: `ad/out/croom-ad.mp4`. Upload it to YouTube or Loom unlisted and paste the link.
