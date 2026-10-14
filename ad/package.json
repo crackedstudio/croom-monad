@@ -6,6 +6,7 @@
   "scripts": {
     "studio": "remotion studio",
     "render": "remotion render ad out/croom-ad.mp4 --codec=h264",
+    "render:founder": "remotion render founder-demo out/croom-founder-demo.mp4 --codec=h264",
     "still": "remotion still ad out/frame.png"
   },
   "dependencies": {

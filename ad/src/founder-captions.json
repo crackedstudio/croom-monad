@@ -1,0 +1,65 @@
+[
+  {
+    "text": "I build under Cracked Studio. Croom is a market whose price nobody can rig, including me.",
+    "startMs": 500,
+    "endMs": 7800,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": "Every market needs a price, and every price comes from someone you trust not to lie.",
+    "startMs": 8600,
+    "endMs": 15700,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": "Synthetic markets are worse. The house generates the number you lose to.",
+    "startMs": 16000,
+    "endMs": 21600,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": "A seed commitment only proves they did not change their mind after you bet.",
+    "startMs": 21900,
+    "endMs": 27600,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": "Croom takes the house out. Prices come from a public randomness beacon.",
+    "startMs": 28200,
+    "endMs": 36300,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": "Hand anyone that recipe and they get identical prices, forever, without talking to each other.",
+    "startMs": 36600,
+    "endMs": 45600,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": "You cannot audit that conflict away. You have to remove the party.",
+    "startMs": 47300,
+    "endMs": 55000,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": "The chain does not supply the price. It catches anyone who lies about it and takes their bond.",
+    "startMs": 55800,
+    "endMs": 64500,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": "Somebody already lost theirs over a lie of one unit at the eighteenth decimal place.",
+    "startMs": 64800,
+    "endMs": 71800,
+    "timestampMs": null,
+    "confidence": null
+  }
+]

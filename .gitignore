@@ -1,8 +1,10 @@
 # foundry
 out/
 cache/
-# Keep real broadcasts (they carry tx hashes); never keep simulations.
-broadcast/**/dry-run/
+# Foundry's raw run logs. They carry tx hashes, but so do deployments/10143/*.json — which are
+# curated, a hundredth of the size, and the thing bin/record-deployment.py writes them into. The
+# demonstrations' hashes are in the README.
+broadcast/
 docs/book/
 
 # node

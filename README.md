@@ -271,7 +271,7 @@ Foundry `1.4.3` and Node `20+`, both pinned — see [`docs/toolchain.md`](docs/t
 
 ```bash
 git submodule update --init --recursive   # the reference implementation and its vectors
-forge build && forge test                 # 102 tests
+forge build && forge test                 # 112 tests
 CROOM_FULL_VECTORS=1 forge test           # the complete 20,000-round sweep
 make web                                  # regenerate addresses, build the frontend
 ```
@@ -282,3 +282,18 @@ make web                                  # regenerate addresses, build the fron
 | [`math_breakdown.md`](math_breakdown.md) | the mathematics from first principles, assuming only algebra |
 | [`docs/porting-notes.md`](docs/porting-notes.md) | what Solidity makes harder than Rust |
 | [`spec/`](spec/) | pointer to the normative specification upstream |
+
+## What is where
+
+| | |
+| --- | --- |
+| [`src/`](src/) | the four contracts, plus the fixed-point and Merkle libraries they share |
+| [`test/`](test/) | 112 tests, including the frozen vectors the Rust reference produced |
+| [`script/`](script/) | deployment and the two live demonstrations, as Foundry scripts |
+| [`web/`](web/) | the site: landing page, writing, and the app that derives prices in your browser |
+| [`indexer/`](indexer/) | Envio HyperIndex — Rooms, checkpoints, markets and stakes |
+| [`bench/`](bench/) | gas measured against a live node, and what we got wrong estimating it |
+| [`docs/findings/`](docs/findings/) | a problem we found in the specification and reported rather than patched around |
+| [`docs/decisions/`](docs/decisions/) | why the entropy source and the scope are what they are |
+| [`deployments/`](deployments/) | addresses and deployment transactions, written by `bin/record-deployment.py` |
+| [`ad/`](ad/) | the 30-second advert: a real price series, and a soundtrack that pulses with the beacon |
